@@ -1,7 +1,7 @@
 const appConfigMixin = {
     data() {
       return {
-        modeName: process.env.VITE_modeName
+        modeName: "CN"
       }
     }
   }
