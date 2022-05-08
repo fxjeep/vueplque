@@ -1223,7 +1223,7 @@ eval("/* (ignored) */\n\n//# sourceURL=webpack://cliplauque/crypto_(ignored)?");
 /******/ 	
 /******/ 	/* webpack/runtime/publicPath */
 /******/ 	!function() {
-/******/ 		__webpack_require__.p = "/vueplaque/";
+/******/ 		__webpack_require__.p = "/vueplque/";
 /******/ 	}();
 /******/ 	
 /******/ 	/* webpack/runtime/jsonp chunk loading */
