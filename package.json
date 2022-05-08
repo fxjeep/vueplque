@@ -2,8 +2,8 @@
   "name": "plaquevue",
   "version": "0.0.0",
   "scripts": {
-    "dev": "vite --mode cn",
-    "build": "vite build --mode cn",
+    "dev": "vite",
+    "build": "vite build",
     "test": "jest tests"
   },
   "dependencies": {

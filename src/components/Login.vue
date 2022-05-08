@@ -27,7 +27,7 @@
                     <button class="button is-success" @click="handleLogin">
                     Plaque Login
                     </button>
-                     <button class="button is-success" @click="signup">
+                     <button class="button is-success" @click="signup" v-show="false">
                     Sign Up
                     </button>
                 </p>

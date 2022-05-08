@@ -16,7 +16,11 @@ export default ({ command, mode }) => {
   {}
   );  
   return {  
-    base: "./",    
+    base: "/vueplque/",  
+    mode: "development",
+    build: {
+      outDir: './docs'
+    },
     resolve: {    
       alias: {      
         "@": resolve("./src"),
