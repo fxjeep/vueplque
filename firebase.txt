@@ -1,0 +1,174 @@
+import { collection, doc, addDoc, getDocs, setDoc, query, onSnapshot, deleteDoc, getDoc, where } from "firebase/firestore"; 
+import  {auth, db}  from '../services/firebase.js'
+import {tabs} from '../services/appConfig.js';
+import {printStatus} from '../services/appConfig'
+
+import {
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged
+} from 'firebase/auth'
+
+export const collectionNames = {
+    ContactInfo:"ContactInfo",
+    ContactDetail: "ContactDetail"
+  }
+  
+  var unsubLive = null;
+  var unsubDead = null;
+  var unsubAncestor = null;
+  var unsubscribe = null;
+
+export function signin(email, password){
+    return signInWithEmailAndPassword(auth, email, password);
+}
+
+export function signout(){
+    signOut(auth);
+}
+
+export async function getAllContactList(callback){
+    const collectionRef = await collection(db, collectionNames.ContactInfo);
+    const q = query(collectionRef);
+    unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const contactsArray = querySnapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
+        callback(contactsArray);
+  });
+}
+
+export function addNewContactFunc(name, code, printState){
+    let contactId = '';
+    let detailId = '';
+    if (!printState) printState = printStatus.All;
+
+    return addDoc(collection(db, collectionNames.ContactInfo), {
+            Name: name,
+            Code: code,
+            LastPrint: getTodayDate(),
+            IsPrint: printState,
+            DetailId: ''
+          })
+          .then(res=>{
+            contactId = res.id;
+            return addDoc(collection(db, collectionNames.ContactDetail), {ContactId: contactId})
+          })
+          .then(res=>{
+            detailId = res.id;
+            return setDoc(doc(db, collectionNames.ContactInfo, contactId), {DetailId:detailId},  { merge: true });
+          })
+          .then(res=>{
+            return addDoc(collection(db, collectionNames.ContactDetail, detailId, tabs.live));
+          })
+          .then(res=>{
+            addDoc(collection(db, collectionNames.ContactDetail, detailId, tabs.dead));
+          })
+          .then(res=>{
+            addDoc(collection(db, collectionNames.ContactDetail, detailId, tabs.ancestor));
+          })
+          .catch(err=>{
+            return err;
+          });
+}
+
+export function deleteContactFunc(id){
+    return deleteDoc(doc(db, collectionNames.ContactInfo, id)).then(res=>{
+        return res;
+      }, err=>{
+        
+      });
+}
+
+export function loadContactDetail(detailId, callback){
+    if (unsubLive) unsubLive();
+    if (unsubDead) unsubDead();
+    if (unsubAncestor) unsubAncestor();
+
+    unsubLive = onSnapshot(collection(db, collectionNames.ContactDetail, detailId, tabs.live), (querySnapshot) => {
+        const live = querySnapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
+        callback('setLive', live);       
+    });
+
+    unsubDead = onSnapshot(collection(db, collectionNames.ContactDetail, detailId, tabs.dead), (querySnapshot) => {
+        const dead = querySnapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
+        callback('setDead', dead);
+    });
+
+    unsubAncestor = onSnapshot(collection(db, collectionNames.ContactDetail, detailId, tabs.ancestor), (querySnapshot) => {
+        const ancestor = querySnapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
+        callback('', ancestor);
+    });
+}
+
+export async function readContactDetailData(detailId){
+    let detailData = {
+        live:[],
+        dead:[],
+        ancestor:[]
+      };
+  
+      let liveCollRef = collection(db, collectionNames.ContactDetail, detailId, tabs.live);
+      let querySnapshot = getDocs(liveCollRef);
+      (await querySnapshot).forEach((item)=>{
+        detailData.live = detailData.live.concat(item.data());
+      })
+  
+      let deadCollRef = collection(db, collectionNames.ContactDetail, detailId, tabs.dead);
+      querySnapshot = getDocs(deadCollRef);
+      (await querySnapshot).forEach((item)=>{
+        detailData.dead = detailData.dead.concat(item.data());
+      })
+  
+      let ancestorCollRef = collection(db, collectionNames.ContactDetail, detailId, tabs.ancestor);
+      querySnapshot = getDocs(ancestorCollRef);
+      (await querySnapshot).forEach((item)=>{
+        detailData.ancestor = detailData.ancestor.concat(item.data());
+      })
+      
+      return detailData;
+}
+
+export function updateContactInfo(name, code, id){
+    const contactInfoRef = collection(db, collectionNames.ContactInfo);
+    const current = context.getters.currentContact;
+    current.Name = name;
+    current.Code = code;
+    return setDoc(doc(contactInfoRef, id), current, { merge: true });
+}
+
+export function addDetailRec(type, detailId, rec){
+    let collectionRef = collection(db, collectionNames.ContactDetail, detailId, type);
+    rec.PrintDate = getTodayDate();
+    return addDoc(collectionRef, rec);
+}
+
+export async function getContact(contactId){
+    let docRef= doc(db, collectionNames.ContactInfo, contactId);
+    let contact = await getDoc(docRef);
+    return contact.data();
+}
+
+export async function getContactByNameCode(name, code){
+  let docRef= collection(db, collectionNames.ContactInfo);
+  const q1 = query(docRef, where("Name", "==", name), where("Code", "==", code));
+  const querySnapshot = await getDocs(q1);
+  if (querySnapshot.docs.length > 0 ){
+    return querySnapshot.docs[0].data();
+  }
+  return null;
+}
+
+export function getTodayDate(){
+  let dd = new Date();
+  let mon = (dd.getMonth()+1).toString().padStart(2, "0");
+  let day = dd.getDate().toString().padStart(2, "0");
+  return dd.getFullYear()+"-"+mon+"-"+day;
+}
+
+export function getTodayDateTime(){
+  let dd = new Date();
+  let mon = (dd.getMonth()+1).toString().padStart(2, "0");
+  let day = dd.getDate().toString().padStart(2, "0");
+  let hh = dd.getHours().toString().padStart(2, "0");
+  let mm = dd.getMinutes().toString().padStart(2, "0");
+  return dd.getFullYear()+mon+day+hh+mm;
+}
