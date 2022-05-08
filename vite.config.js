@@ -17,7 +17,6 @@ export default ({ command, mode }) => {
   );  
   return {  
     base: "/vueplque/",  
-    mode: "development",
     build: {
       outDir: './docs',
       minify: false

@@ -9,11 +9,11 @@
     <link rel="stylesheet" href="https://unpkg.com/bulma@0.9.0/css/bulma.min.css" />
     <link href="https://fonts.googleapis.com/css?family=Questrial&display=swap" rel="stylesheet">
     <title>Plaque Editor</title>
-    <title>cliplauque</title>
-  <script defer src="/vueplaque/js/chunk-vendors.js"></script><script defer src="/vueplaque/js/app.js"></script></head>
+    <title><%= htmlWebpackPlugin.options.title %></title>
+  </head>
   <body>
     <noscript>
-      <strong>We're sorry but cliplauque doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
+      <strong>We're sorry but <%= htmlWebpackPlugin.options.title %> doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
     </noscript>
     <div id="app"></div>
     <!-- built files will be auto injected -->

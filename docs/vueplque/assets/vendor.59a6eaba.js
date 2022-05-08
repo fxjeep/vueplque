@@ -76,10 +76,6 @@ function normalizeProps(props) {
   }
   return props;
 }
-const HTML_TAGS = "html,body,base,head,link,meta,style,title,address,article,aside,footer,header,h1,h2,h3,h4,h5,h6,nav,section,div,dd,dl,dt,figcaption,figure,picture,hr,img,li,main,ol,p,pre,ul,a,b,abbr,bdi,bdo,br,cite,code,data,dfn,em,i,kbd,mark,q,rp,rt,ruby,s,samp,small,span,strong,sub,sup,time,u,var,wbr,area,audio,map,track,video,embed,object,param,source,canvas,script,noscript,del,ins,caption,col,colgroup,table,thead,tbody,td,th,tr,button,datalist,fieldset,form,input,label,legend,meter,optgroup,option,output,progress,select,textarea,details,dialog,menu,summary,template,blockquote,iframe,tfoot";
-const SVG_TAGS = "svg,animate,animateMotion,animateTransform,circle,clipPath,color-profile,defs,desc,discard,ellipse,feBlend,feColorMatrix,feComponentTransfer,feComposite,feConvolveMatrix,feDiffuseLighting,feDisplacementMap,feDistanceLight,feDropShadow,feFlood,feFuncA,feFuncB,feFuncG,feFuncR,feGaussianBlur,feImage,feMerge,feMergeNode,feMorphology,feOffset,fePointLight,feSpecularLighting,feSpotLight,feTile,feTurbulence,filter,foreignObject,g,hatch,hatchpath,image,line,linearGradient,marker,mask,mesh,meshgradient,meshpatch,meshrow,metadata,mpath,path,pattern,polygon,polyline,radialGradient,rect,set,solidcolor,stop,switch,symbol,text,textPath,title,tspan,unknown,use,view";
-const isHTMLTag = /* @__PURE__ */ makeMap(HTML_TAGS);
-const isSVGTag = /* @__PURE__ */ makeMap(SVG_TAGS);
 function looseCompareArrays(a, b) {
   if (a.length !== b.length)
     return false;
@@ -148,8 +144,8 @@ const replacer = (_key, val) => {
   }
   return val;
 };
-const EMPTY_OBJ = Object.freeze({});
-const EMPTY_ARR = Object.freeze([]);
+const EMPTY_OBJ = {};
+const EMPTY_ARR = [];
 const NOOP = () => {
 };
 const NO = () => false;
@@ -184,7 +180,6 @@ const toRawType = (value) => {
 const isPlainObject = (val) => toTypeString(val) === "[object Object]";
 const isIntegerKey = (key) => isString(key) && key !== "NaN" && key[0] !== "-" && "" + parseInt(key, 10) === key;
 const isReservedProp = /* @__PURE__ */ makeMap(",key,ref,ref_for,ref_key,onVnodeBeforeMount,onVnodeMounted,onVnodeBeforeUpdate,onVnodeUpdated,onVnodeBeforeUnmount,onVnodeUnmounted");
-const isBuiltInDirective = /* @__PURE__ */ makeMap("bind,cloak,else-if,else,for,html,if,model,on,once,pre,show,slot,text,memo");
 const cacheStringFunction = (fn) => {
   const cache = /* @__PURE__ */ Object.create(null);
   return (str) => {
@@ -221,9 +216,6 @@ let _globalThis;
 const getGlobalThis = () => {
   return _globalThis || (_globalThis = typeof globalThis !== "undefined" ? globalThis : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : typeof global !== "undefined" ? global : {});
 };
-function warn$2(msg, ...args) {
-  console.warn(`[Vue warn] ${msg}`, ...args);
-}
 let activeEffectScope;
 class EffectScope {
   constructor(detached = false) {
@@ -243,8 +235,6 @@ class EffectScope {
       } finally {
         activeEffectScope = this.parent;
       }
-    } else {
-      warn$2(`cannot run an inactive effect scope.`);
     }
   }
   on() {
@@ -292,8 +282,6 @@ function getCurrentScope() {
 function onScopeDispose(fn) {
   if (activeEffectScope) {
     activeEffectScope.cleanups.push(fn);
-  } else {
-    warn$2(`onScopeDispose() is called when there is no active effect scope to be associated with.`);
   }
 }
 const createDep = (effects) => {
@@ -333,8 +321,8 @@ let effectTrackDepth = 0;
 let trackOpBit = 1;
 const maxMarkerBits = 30;
 let activeEffect;
-const ITERATE_KEY = Symbol("iterate");
-const MAP_KEY_ITERATE_KEY = Symbol("Map key iterate");
+const ITERATE_KEY = Symbol("");
+const MAP_KEY_ITERATE_KEY = Symbol("");
 class ReactiveEffect {
   constructor(fn, scheduler = null, scope) {
     this.fn = fn;
@@ -436,8 +424,7 @@ function track(target, type, key) {
     if (!dep) {
       depsMap.set(key, dep = createDep());
     }
-    const eventInfo = { effect: activeEffect, target, type, key };
-    trackEffects(dep, eventInfo);
+    trackEffects(dep);
   }
 }
 function trackEffects(dep, debuggerEventExtraInfo) {
@@ -453,11 +440,6 @@ function trackEffects(dep, debuggerEventExtraInfo) {
   if (shouldTrack2) {
     dep.add(activeEffect);
     activeEffect.deps.push(dep);
-    if (activeEffect.onTrack) {
-      activeEffect.onTrack(Object.assign({
-        effect: activeEffect
-      }, debuggerEventExtraInfo));
-    }
   }
 }
 function trigger$1(target, type, key, newValue, oldValue, oldTarget) {
@@ -504,11 +486,10 @@ function trigger$1(target, type, key, newValue, oldValue, oldTarget) {
         break;
     }
   }
-  const eventInfo = { target, type, key, newValue, oldValue, oldTarget };
   if (deps.length === 1) {
     if (deps[0]) {
       {
-        triggerEffects(deps[0], eventInfo);
+        triggerEffects(deps[0]);
       }
     }
   } else {
@@ -519,16 +500,13 @@ function trigger$1(target, type, key, newValue, oldValue, oldTarget) {
       }
     }
     {
-      triggerEffects(createDep(effects), eventInfo);
+      triggerEffects(createDep(effects));
     }
   }
 }
 function triggerEffects(dep, debuggerEventExtraInfo) {
   for (const effect2 of isArray$c(dep) ? dep : [...dep]) {
     if (effect2 !== activeEffect || effect2.allowRecurse) {
-      if (effect2.onTrigger) {
-        effect2.onTrigger(extend({ effect: effect2 }, debuggerEventExtraInfo));
-      }
       if (effect2.scheduler) {
         effect2.scheduler();
       } else {
@@ -614,7 +592,7 @@ function createSetter(shallow = false) {
       return false;
     }
     if (!shallow && !isReadonly(value)) {
-      if (!isShallow$1(value)) {
+      if (!isShallow(value)) {
         value = toRaw(value);
         oldValue = toRaw(oldValue);
       }
@@ -629,7 +607,7 @@ function createSetter(shallow = false) {
       if (!hadKey) {
         trigger$1(target, "add", key, value);
       } else if (hasChanged(value, oldValue)) {
-        trigger$1(target, "set", key, value, oldValue);
+        trigger$1(target, "set", key, value);
       }
     }
     return result;
@@ -637,10 +615,10 @@ function createSetter(shallow = false) {
 }
 function deleteProperty(target, key) {
   const hadKey = hasOwn$k(target, key);
-  const oldValue = target[key];
+  target[key];
   const result = Reflect.deleteProperty(target, key);
   if (result && hadKey) {
-    trigger$1(target, "delete", key, void 0, oldValue);
+    trigger$1(target, "delete", key, void 0);
   }
   return result;
 }
@@ -665,15 +643,9 @@ const mutableHandlers = {
 const readonlyHandlers = {
   get: readonlyGet,
   set(target, key) {
-    {
-      console.warn(`Set operation on key "${String(key)}" failed: target is readonly.`, target);
-    }
     return true;
   },
   deleteProperty(target, key) {
-    {
-      console.warn(`Delete operation on key "${String(key)}" failed: target is readonly.`, target);
-    }
     return true;
   }
 };
@@ -738,15 +710,13 @@ function set$1$1(key, value) {
   if (!hadKey) {
     key = toRaw(key);
     hadKey = has2.call(target, key);
-  } else {
-    checkIdentityKeys(target, has2, key);
   }
   const oldValue = get3.call(target, key);
   target.set(key, value);
   if (!hadKey) {
     trigger$1(target, "add", key, value);
   } else if (hasChanged(value, oldValue)) {
-    trigger$1(target, "set", key, value, oldValue);
+    trigger$1(target, "set", key, value);
   }
   return this;
 }
@@ -757,23 +727,20 @@ function deleteEntry(key) {
   if (!hadKey) {
     key = toRaw(key);
     hadKey = has2.call(target, key);
-  } else {
-    checkIdentityKeys(target, has2, key);
   }
-  const oldValue = get3 ? get3.call(target, key) : void 0;
+  get3 ? get3.call(target, key) : void 0;
   const result = target.delete(key);
   if (hadKey) {
-    trigger$1(target, "delete", key, void 0, oldValue);
+    trigger$1(target, "delete", key, void 0);
   }
   return result;
 }
 function clear$2() {
   const target = toRaw(this);
   const hadItems = target.size !== 0;
-  const oldTarget = isMap(target) ? new Map(target) : new Set(target);
   const result = target.clear();
   if (hadItems) {
-    trigger$1(target, "clear", void 0, void 0, oldTarget);
+    trigger$1(target, "clear", void 0, void 0);
   }
   return result;
 }
@@ -815,10 +782,6 @@ function createIterableMethod(method2, isReadonly2, isShallow2) {
 }
 function createReadonlyMethod(type) {
   return function(...args) {
-    {
-      const key = args[0] ? `on key "${args[0]}" ` : ``;
-      console.warn(`${capitalize(type)} operation ${key}failed: target is readonly.`, toRaw(this));
-    }
     return type === "delete" ? false : this;
   };
 }
@@ -923,13 +886,6 @@ const readonlyCollectionHandlers = {
 const shallowReadonlyCollectionHandlers = {
   get: /* @__PURE__ */ createInstrumentationGetter(true, true)
 };
-function checkIdentityKeys(target, has2, key) {
-  const rawKey = toRaw(key);
-  if (rawKey !== key && has2.call(target, rawKey)) {
-    const type = toRawType(target);
-    console.warn(`Reactive ${type} contains both the raw and reactive versions of the same object${type === `Map` ? ` as keys` : ``}, which can lead to inconsistencies. Avoid differentiating between the raw and reactive versions of an object and only use the reactive version if possible.`);
-  }
-}
 const reactiveMap = /* @__PURE__ */ new WeakMap();
 const shallowReactiveMap = /* @__PURE__ */ new WeakMap();
 const readonlyMap = /* @__PURE__ */ new WeakMap();
@@ -968,9 +924,6 @@ function shallowReadonly(target) {
 }
 function createReactiveObject(target, isReadonly2, baseHandlers, collectionHandlers, proxyMap) {
   if (!isObject$p(target)) {
-    {
-      console.warn(`value cannot be made reactive: ${String(target)}`);
-    }
     return target;
   }
   if (target["__v_raw"] && !(isReadonly2 && target["__v_isReactive"])) {
@@ -997,7 +950,7 @@ function isReactive(value) {
 function isReadonly(value) {
   return !!(value && value["__v_isReadonly"]);
 }
-function isShallow$1(value) {
+function isShallow(value) {
   return !!(value && value["__v_isShallow"]);
 }
 function isProxy(value) {
@@ -1017,11 +970,7 @@ function trackRefValue(ref2) {
   if (shouldTrack && activeEffect) {
     ref2 = toRaw(ref2);
     {
-      trackEffects(ref2.dep || (ref2.dep = createDep()), {
-        target: ref2,
-        type: "get",
-        key: "value"
-      });
+      trackEffects(ref2.dep || (ref2.dep = createDep()));
     }
   }
 }
@@ -1029,12 +978,7 @@ function triggerRefValue(ref2, newVal) {
   ref2 = toRaw(ref2);
   if (ref2.dep) {
     {
-      triggerEffects(ref2.dep, {
-        target: ref2,
-        type: "set",
-        key: "value",
-        newValue: newVal
-      });
+      triggerEffects(ref2.dep);
     }
   }
 }
@@ -1070,12 +1014,12 @@ class RefImpl {
     if (hasChanged(newVal, this._rawValue)) {
       this._rawValue = newVal;
       this._value = this.__v_isShallow ? newVal : toReactive(newVal);
-      triggerRefValue(this, newVal);
+      triggerRefValue(this);
     }
   }
 }
 function triggerRef(ref2) {
-  triggerRefValue(ref2, ref2.value);
+  triggerRefValue(ref2);
 }
 function unref(ref2) {
   return isRef(ref2) ? ref2.value : ref2;
@@ -1114,9 +1058,6 @@ function customRef(factory) {
   return new CustomRefImpl(factory);
 }
 function toRefs(object) {
-  if (!isProxy(object)) {
-    console.warn(`toRefs() expects a reactive object but received a plain one.`);
-  }
   const ret = isArray$c(object) ? new Array(object.length) : {};
   for (const key in object) {
     ret[key] = toRef(object, key);
@@ -1177,29 +1118,17 @@ function computed$1(getterOrOptions, debugOptions, isSSR = false) {
   const onlyGetter = isFunction(getterOrOptions);
   if (onlyGetter) {
     getter = getterOrOptions;
-    setter = () => {
-      console.warn("Write operation failed: computed value is readonly");
-    };
+    setter = NOOP;
   } else {
     getter = getterOrOptions.get;
     setter = getterOrOptions.set;
   }
   const cRef = new ComputedRefImpl(getter, setter, onlyGetter || !setter, isSSR);
-  if (debugOptions && !isSSR) {
-    cRef.effect.onTrack = debugOptions.onTrack;
-    cRef.effect.onTrigger = debugOptions.onTrigger;
-  }
   return cRef;
 }
 Promise.resolve();
 const stack = [];
-function pushWarningContext(vnode) {
-  stack.push(vnode);
-}
-function popWarningContext() {
-  stack.pop();
-}
-function warn$1(msg, ...args) {
+function warn(msg, ...args) {
   pauseTracking();
   const instance = stack.length ? stack[stack.length - 1].component : null;
   const appWarnHandler = instance && instance.appContext.config.warnHandler;
@@ -1284,37 +1213,6 @@ function formatProp(key, value, raw) {
     return raw ? value : [`${key}=`, value];
   }
 }
-const ErrorTypeStrings = {
-  ["sp"]: "serverPrefetch hook",
-  ["bc"]: "beforeCreate hook",
-  ["c"]: "created hook",
-  ["bm"]: "beforeMount hook",
-  ["m"]: "mounted hook",
-  ["bu"]: "beforeUpdate hook",
-  ["u"]: "updated",
-  ["bum"]: "beforeUnmount hook",
-  ["um"]: "unmounted hook",
-  ["a"]: "activated hook",
-  ["da"]: "deactivated hook",
-  ["ec"]: "errorCaptured hook",
-  ["rtc"]: "renderTracked hook",
-  ["rtg"]: "renderTriggered hook",
-  [0]: "setup function",
-  [1]: "render function",
-  [2]: "watcher getter",
-  [3]: "watcher callback",
-  [4]: "watcher cleanup function",
-  [5]: "native event handler",
-  [6]: "component event handler",
-  [7]: "vnode hook",
-  [8]: "directive hook",
-  [9]: "transition hook",
-  [10]: "app errorHandler",
-  [11]: "app warnHandler",
-  [12]: "ref function",
-  [13]: "async component loader",
-  [14]: "scheduler flush. This is likely a Vue internals bug. Please open an issue at https://new-issue.vuejs.org/?repo=vuejs/core"
-};
 function callWithErrorHandling(fn, instance, type, args) {
   let res;
   try {
@@ -1345,7 +1243,7 @@ function handleError(err, instance, type, throwInDev = true) {
   if (instance) {
     let cur = instance.parent;
     const exposedInstance = instance.proxy;
-    const errorInfo = ErrorTypeStrings[type];
+    const errorInfo = type;
     while (cur) {
       const errorCapturedHooks = cur.ec;
       if (errorCapturedHooks) {
@@ -1367,19 +1265,7 @@ function handleError(err, instance, type, throwInDev = true) {
 }
 function logError(err, type, contextVNode, throwInDev = true) {
   {
-    const info = ErrorTypeStrings[type];
-    if (contextVNode) {
-      pushWarningContext(contextVNode);
-    }
-    warn$1(`Unhandled error${info ? ` during execution of ${info}` : ``}`);
-    if (contextVNode) {
-      popWarningContext();
-    }
-    if (throwInDev) {
-      throw err;
-    } else {
-      console.error(err);
-    }
+    console.error(err);
   }
 }
 let isFlushing = false;
@@ -1395,7 +1281,6 @@ let postFlushIndex = 0;
 const resolvedPromise = Promise.resolve();
 let currentFlushPromise = null;
 let currentPreFlushParentJob = null;
-const RECURSION_LIMIT = 100;
 function nextTick(fn) {
   const p2 = currentFlushPromise || resolvedPromise;
   return fn ? p2.then(this ? fn.bind(this) : fn) : p2;
@@ -1453,13 +1338,7 @@ function flushPreFlushCbs(seen, parentJob = null) {
     currentPreFlushParentJob = parentJob;
     activePreFlushCbs = [...new Set(pendingPreFlushCbs)];
     pendingPreFlushCbs.length = 0;
-    {
-      seen = seen || /* @__PURE__ */ new Map();
-    }
     for (preFlushIndex = 0; preFlushIndex < activePreFlushCbs.length; preFlushIndex++) {
-      if (checkRecursiveUpdates(seen, activePreFlushCbs[preFlushIndex])) {
-        continue;
-      }
       activePreFlushCbs[preFlushIndex]();
     }
     activePreFlushCbs = null;
@@ -1477,14 +1356,8 @@ function flushPostFlushCbs(seen) {
       return;
     }
     activePostFlushCbs = deduped;
-    {
-      seen = seen || /* @__PURE__ */ new Map();
-    }
     activePostFlushCbs.sort((a, b) => getId(a) - getId(b));
     for (postFlushIndex = 0; postFlushIndex < activePostFlushCbs.length; postFlushIndex++) {
-      if (checkRecursiveUpdates(seen, activePostFlushCbs[postFlushIndex])) {
-        continue;
-      }
       activePostFlushCbs[postFlushIndex]();
     }
     activePostFlushCbs = null;
@@ -1495,26 +1368,22 @@ const getId = (job) => job.id == null ? Infinity : job.id;
 function flushJobs(seen) {
   isFlushPending = false;
   isFlushing = true;
-  {
-    seen = seen || /* @__PURE__ */ new Map();
-  }
   flushPreFlushCbs(seen);
   queue$2.sort((a, b) => getId(a) - getId(b));
-  const check2 = (job) => checkRecursiveUpdates(seen, job);
+  const check2 = NOOP;
   try {
     for (flushIndex = 0; flushIndex < queue$2.length; flushIndex++) {
       const job = queue$2[flushIndex];
       if (job && job.active !== false) {
-        if (check2(job)) {
-          continue;
-        }
+        if (false)
+          ;
         callWithErrorHandling(job, null, 14);
       }
     }
   } finally {
     flushIndex = 0;
     queue$2.length = 0;
-    flushPostFlushCbs(seen);
+    flushPostFlushCbs();
     isFlushing = false;
     currentFlushPromise = null;
     if (queue$2.length || pendingPreFlushCbs.length || pendingPostFlushCbs.length) {
@@ -1522,140 +1391,8 @@ function flushJobs(seen) {
     }
   }
 }
-function checkRecursiveUpdates(seen, fn) {
-  if (!seen.has(fn)) {
-    seen.set(fn, 1);
-  } else {
-    const count = seen.get(fn);
-    if (count > RECURSION_LIMIT) {
-      const instance = fn.ownerInstance;
-      const componentName = instance && getComponentName(instance.type);
-      warn$1(`Maximum recursive updates exceeded${componentName ? ` in component <${componentName}>` : ``}. This means you have a reactive effect that is mutating its own dependencies and thus recursively triggering itself. Possible sources include component template, render function, updated hook or watcher source function.`);
-      return true;
-    } else {
-      seen.set(fn, count + 1);
-    }
-  }
-}
-let isHmrUpdating = false;
-const hmrDirtyComponents = /* @__PURE__ */ new Set();
-{
-  getGlobalThis().__VUE_HMR_RUNTIME__ = {
-    createRecord: tryWrap(createRecord),
-    rerender: tryWrap(rerender),
-    reload: tryWrap(reload)
-  };
-}
-const map$a = /* @__PURE__ */ new Map();
-function registerHMR(instance) {
-  const id2 = instance.type.__hmrId;
-  let record = map$a.get(id2);
-  if (!record) {
-    createRecord(id2, instance.type);
-    record = map$a.get(id2);
-  }
-  record.instances.add(instance);
-}
-function unregisterHMR(instance) {
-  map$a.get(instance.type.__hmrId).instances.delete(instance);
-}
-function createRecord(id2, initialDef) {
-  if (map$a.has(id2)) {
-    return false;
-  }
-  map$a.set(id2, {
-    initialDef: normalizeClassComponent(initialDef),
-    instances: /* @__PURE__ */ new Set()
-  });
-  return true;
-}
-function normalizeClassComponent(component) {
-  return isClassComponent(component) ? component.__vccOpts : component;
-}
-function rerender(id2, newRender) {
-  const record = map$a.get(id2);
-  if (!record) {
-    return;
-  }
-  record.initialDef.render = newRender;
-  [...record.instances].forEach((instance) => {
-    if (newRender) {
-      instance.render = newRender;
-      normalizeClassComponent(instance.type).render = newRender;
-    }
-    instance.renderCache = [];
-    isHmrUpdating = true;
-    instance.update();
-    isHmrUpdating = false;
-  });
-}
-function reload(id2, newComp) {
-  const record = map$a.get(id2);
-  if (!record)
-    return;
-  newComp = normalizeClassComponent(newComp);
-  updateComponentDef(record.initialDef, newComp);
-  const instances = [...record.instances];
-  for (const instance of instances) {
-    const oldComp = normalizeClassComponent(instance.type);
-    if (!hmrDirtyComponents.has(oldComp)) {
-      if (oldComp !== record.initialDef) {
-        updateComponentDef(oldComp, newComp);
-      }
-      hmrDirtyComponents.add(oldComp);
-    }
-    instance.appContext.optionsCache.delete(instance.type);
-    if (instance.ceReload) {
-      hmrDirtyComponents.add(oldComp);
-      instance.ceReload(newComp.styles);
-      hmrDirtyComponents.delete(oldComp);
-    } else if (instance.parent) {
-      queueJob(instance.parent.update);
-      if (instance.parent.type.__asyncLoader && instance.parent.ceReload) {
-        instance.parent.ceReload(newComp.styles);
-      }
-    } else if (instance.appContext.reload) {
-      instance.appContext.reload();
-    } else if (typeof window !== "undefined") {
-      window.location.reload();
-    } else {
-      console.warn("[HMR] Root or manually mounted instance modified. Full reload required.");
-    }
-  }
-  queuePostFlushCb(() => {
-    for (const instance of instances) {
-      hmrDirtyComponents.delete(normalizeClassComponent(instance.type));
-    }
-  });
-}
-function updateComponentDef(oldComp, newComp) {
-  extend(oldComp, newComp);
-  for (const key in oldComp) {
-    if (key !== "__file" && !(key in newComp)) {
-      delete oldComp[key];
-    }
-  }
-}
-function tryWrap(fn) {
-  return (id2, arg) => {
-    try {
-      return fn(id2, arg);
-    } catch (e2) {
-      console.error(e2);
-      console.warn(`[HMR] Something went wrong during Vue component hot-reload. Full reload required.`);
-    }
-  };
-}
 let devtools;
 let buffer = [];
-let devtoolsNotInstalled = false;
-function emit(event, ...args) {
-  if (devtools) {
-    devtools.emit(event, ...args);
-  } else if (!devtoolsNotInstalled) {
-    buffer.push({ event, args });
-  }
-}
 function setDevtoolsHook(hook, target) {
   var _a, _b;
   devtools = hook;
@@ -1671,64 +1408,15 @@ function setDevtoolsHook(hook, target) {
     setTimeout(() => {
       if (!devtools) {
         target.__VUE_DEVTOOLS_HOOK_REPLAY__ = null;
-        devtoolsNotInstalled = true;
         buffer = [];
       }
     }, 3e3);
   } else {
-    devtoolsNotInstalled = true;
     buffer = [];
   }
 }
-function devtoolsInitApp(app, version2) {
-  emit("app:init", app, version2, {
-    Fragment,
-    Text,
-    Comment,
-    Static
-  });
-}
-function devtoolsUnmountApp(app) {
-  emit("app:unmount", app);
-}
-const devtoolsComponentAdded = /* @__PURE__ */ createDevtoolsComponentHook("component:added");
-const devtoolsComponentUpdated = /* @__PURE__ */ createDevtoolsComponentHook("component:updated");
-const devtoolsComponentRemoved = /* @__PURE__ */ createDevtoolsComponentHook("component:removed");
-function createDevtoolsComponentHook(hook) {
-  return (component) => {
-    emit(hook, component.appContext.app, component.uid, component.parent ? component.parent.uid : void 0, component);
-  };
-}
-const devtoolsPerfStart = /* @__PURE__ */ createDevtoolsPerformanceHook("perf:start");
-const devtoolsPerfEnd = /* @__PURE__ */ createDevtoolsPerformanceHook("perf:end");
-function createDevtoolsPerformanceHook(hook) {
-  return (component, type, time) => {
-    emit(hook, component.appContext.app, component.uid, component, type, time);
-  };
-}
-function devtoolsComponentEmit(component, event, params) {
-  emit("component:emit", component.appContext.app, component, event, params);
-}
 function emit$1(instance, event, ...rawArgs) {
   const props = instance.vnode.props || EMPTY_OBJ;
-  {
-    const { emitsOptions, propsOptions: [propsOptions] } = instance;
-    if (emitsOptions) {
-      if (!(event in emitsOptions) && true) {
-        if (!propsOptions || !(toHandlerKey(event) in propsOptions)) {
-          warn$1(`Component emitted event "${event}" but it is neither declared in the emits option nor as an "${toHandlerKey(event)}" prop.`);
-        }
-      } else {
-        const validator = emitsOptions[event];
-        if (isFunction(validator)) {
-          const isValid = validator(...rawArgs);
-          if (!isValid) {
-            warn$1(`Invalid event arguments: event validation failed for event "${event}".`);
-          }
-        }
-      }
-    }
-  }
   let args = rawArgs;
   const isModelListener2 = event.startsWith("update:");
   const modelArg = isModelListener2 && event.slice(7);
@@ -1739,15 +1427,6 @@ function emit$1(instance, event, ...rawArgs) {
       args = rawArgs.map((a) => a.trim());
     } else if (number) {
       args = rawArgs.map(toNumber);
-    }
-  }
-  {
-    devtoolsComponentEmit(instance, event, args);
-  }
-  {
-    const lowerCaseEvent = event.toLowerCase();
-    if (lowerCaseEvent !== event && props[toHandlerKey(lowerCaseEvent)]) {
-      warn$1(`Event "${lowerCaseEvent}" is emitted in component ${formatComponentName(instance, instance.type)} but the handler is registered for "${event}". Note that HTML attributes are case-insensitive and you cannot use v-on to listen to camelCase events when using in-DOM templates. You should probably use "${hyphenate(event)}" instead of "${event}".`);
     }
   }
   let handlerName;
@@ -1846,9 +1525,6 @@ function withCtx(fn, ctx = currentRenderingInstance, isNonScopedSlot) {
     if (renderFnWithContext._d) {
       setBlockTracking(1);
     }
-    {
-      devtoolsComponentUpdated(ctx);
-    }
     return res;
   };
   renderFnWithContext._n = true;
@@ -1856,18 +1532,13 @@ function withCtx(fn, ctx = currentRenderingInstance, isNonScopedSlot) {
   renderFnWithContext._d = true;
   return renderFnWithContext;
 }
-let accessedAttrs = false;
 function markAttrsAccessed() {
-  accessedAttrs = true;
 }
 function renderComponentRoot(instance) {
-  const { type: Component, vnode, proxy, withProxy, props, propsOptions: [propsOptions], slots, attrs, emit: emit3, render: render2, renderCache, data: data2, setupState, ctx, inheritAttrs } = instance;
+  const { type: Component, vnode, proxy, withProxy, props, propsOptions: [propsOptions], slots, attrs, emit: emit2, render: render2, renderCache, data: data2, setupState, ctx, inheritAttrs } = instance;
   let result;
   let fallthroughAttrs;
   const prev = setCurrentRenderingInstance(instance);
-  {
-    accessedAttrs = false;
-  }
   try {
     if (vnode.shapeFlag & 4) {
       const proxyToUse = withProxy || proxy;
@@ -1875,17 +1546,16 @@ function renderComponentRoot(instance) {
       fallthroughAttrs = attrs;
     } else {
       const render3 = Component;
-      if (attrs === props) {
-        markAttrsAccessed();
-      }
-      result = normalizeVNode(render3.length > 1 ? render3(props, true ? {
+      if (false)
+        ;
+      result = normalizeVNode(render3.length > 1 ? render3(props, false ? {
         get attrs() {
           markAttrsAccessed();
           return attrs;
         },
         slots,
-        emit: emit3
-      } : { attrs, slots, emit: emit3 }) : render3(props, null));
+        emit: emit2
+      } : { attrs, slots, emit: emit2 }) : render3(props, null));
       fallthroughAttrs = Component.props ? attrs : getFunctionalFallthrough(attrs);
     }
   } catch (err) {
@@ -1894,10 +1564,6 @@ function renderComponentRoot(instance) {
     result = createVNode(Comment);
   }
   let root = result;
-  let setRoot = void 0;
-  if (result.patchFlag > 0 && result.patchFlag & 2048) {
-    [root, setRoot] = getChildRoot(result);
-  }
   if (fallthroughAttrs && inheritAttrs !== false) {
     const keys4 = Object.keys(fallthroughAttrs);
     const { shapeFlag } = root;
@@ -1907,70 +1573,21 @@ function renderComponentRoot(instance) {
           fallthroughAttrs = filterModelListeners(fallthroughAttrs, propsOptions);
         }
         root = cloneVNode(root, fallthroughAttrs);
-      } else if (!accessedAttrs && root.type !== Comment) {
-        const allAttrs = Object.keys(attrs);
-        const eventAttrs = [];
-        const extraAttrs = [];
-        for (let i2 = 0, l = allAttrs.length; i2 < l; i2++) {
-          const key = allAttrs[i2];
-          if (isOn(key)) {
-            if (!isModelListener(key)) {
-              eventAttrs.push(key[2].toLowerCase() + key.slice(3));
-            }
-          } else {
-            extraAttrs.push(key);
-          }
-        }
-        if (extraAttrs.length) {
-          warn$1(`Extraneous non-props attributes (${extraAttrs.join(", ")}) were passed to component but could not be automatically inherited because component renders fragment or text root nodes.`);
-        }
-        if (eventAttrs.length) {
-          warn$1(`Extraneous non-emits event listeners (${eventAttrs.join(", ")}) were passed to component but could not be automatically inherited because component renders fragment or text root nodes. If the listener is intended to be a component custom event listener only, declare it using the "emits" option.`);
-        }
       }
     }
   }
   if (vnode.dirs) {
-    if (!isElementRoot(root)) {
-      warn$1(`Runtime directive used on component with non-element root node. The directives will not function as intended.`);
-    }
     root.dirs = root.dirs ? root.dirs.concat(vnode.dirs) : vnode.dirs;
   }
   if (vnode.transition) {
-    if (!isElementRoot(root)) {
-      warn$1(`Component inside <Transition> renders non-element root node that cannot be animated.`);
-    }
     root.transition = vnode.transition;
   }
-  if (setRoot) {
-    setRoot(root);
-  } else {
+  {
     result = root;
   }
   setCurrentRenderingInstance(prev);
   return result;
 }
-const getChildRoot = (vnode) => {
-  const rawChildren = vnode.children;
-  const dynamicChildren = vnode.dynamicChildren;
-  const childRoot = filterSingleRoot(rawChildren);
-  if (!childRoot) {
-    return [vnode, void 0];
-  }
-  const index = rawChildren.indexOf(childRoot);
-  const dynamicIndex = dynamicChildren ? dynamicChildren.indexOf(childRoot) : -1;
-  const setRoot = (updatedRoot) => {
-    rawChildren[index] = updatedRoot;
-    if (dynamicChildren) {
-      if (dynamicIndex > -1) {
-        dynamicChildren[dynamicIndex] = updatedRoot;
-      } else if (updatedRoot.patchFlag > 0) {
-        vnode.dynamicChildren = [...dynamicChildren, updatedRoot];
-      }
-    }
-  };
-  return [normalizeVNode(childRoot), setRoot];
-};
 function filterSingleRoot(children) {
   let singleRoot;
   for (let i2 = 0; i2 < children.length; i2++) {
@@ -2007,16 +1624,10 @@ const filterModelListeners = (attrs, props) => {
   }
   return res;
 };
-const isElementRoot = (vnode) => {
-  return vnode.shapeFlag & (6 | 1) || vnode.type === Comment;
-};
 function shouldUpdateComponent(prevVNode, nextVNode, optimized) {
   const { props: prevProps, children: prevChildren, component } = prevVNode;
   const { props: nextProps, children: nextChildren, patchFlag } = nextVNode;
   const emits = component.emitsOptions;
-  if ((prevChildren || nextChildren) && isHmrUpdating) {
-    return true;
-  }
   if (nextVNode.dirs || nextVNode.transition) {
     return true;
   }
@@ -2184,12 +1795,7 @@ function patchSuspense(n1, n2, container, anchor, parentComponent, isSVG, slotSc
     }
   }
 }
-let hasWarned = false;
 function createSuspenseBoundary(vnode, parent2, parentComponent, container, hiddenContainer, anchor, isSVG, slotScopeIds, optimized, rendererInternals, isHydrating = false) {
-  if (!hasWarned) {
-    hasWarned = true;
-    console[console.info ? "info" : "log"](`<Suspense> is an experimental feature and its API will likely change.`);
-  }
   const { p: patch, m: move, um: unmount, n: next2, o: { parentNode, remove: remove2 } } = rendererInternals;
   const timeout = toNumber(vnode.props && vnode.props.timeout);
   const suspense = {
@@ -2210,14 +1816,6 @@ function createSuspenseBoundary(vnode, parent2, parentComponent, container, hidd
     isUnmounted: false,
     effects: [],
     resolve(resume = false) {
-      {
-        if (!resume && !suspense.pendingBranch) {
-          throw new Error(`suspense.resolve() is called without a pending branch.`);
-        }
-        if (suspense.isUnmounted) {
-          throw new Error(`suspense.resolve() is called on an already unmounted suspense boundary.`);
-        }
-      }
       const { vnode: vnode2, activeBranch, pendingBranch, pendingId, effects, parentComponent: parentComponent2, container: container2 } = suspense;
       if (suspense.isHydrating) {
         suspense.isHydrating = false;
@@ -2303,9 +1901,6 @@ function createSuspenseBoundary(vnode, parent2, parentComponent, container, hidd
         }
         instance.asyncResolved = true;
         const { vnode: vnode2 } = instance;
-        {
-          pushWarningContext(vnode2);
-        }
         handleSetupResult(instance, asyncSetupResult, false);
         if (hydratedEl) {
           vnode2.el = hydratedEl;
@@ -2316,9 +1911,6 @@ function createSuspenseBoundary(vnode, parent2, parentComponent, container, hidd
           remove2(placeholder);
         }
         updateHOCHostEl(instance, vnode2.el);
-        {
-          popWarningContext();
-        }
         if (isInPendingSuspense && --suspense.deps === 0) {
           suspense.resolve();
         }
@@ -2367,9 +1959,6 @@ function normalizeSuspenseSlot(s) {
   }
   if (isArray$c(s)) {
     const singleChild = filterSingleRoot(s);
-    if (!singleChild) {
-      warn$1(`<Suspense> slots expect a single root node.`);
-    }
     s = singleChild;
   }
   s = normalizeVNode(s);
@@ -2399,11 +1988,9 @@ function setActiveBranch(suspense, branch) {
   }
 }
 function provide(key, value) {
-  if (!currentInstance) {
-    {
-      warn$1(`provide() can only be used inside setup().`);
-    }
-  } else {
+  if (!currentInstance)
+    ;
+  else {
     let provides = currentInstance.provides;
     const parentProvides = currentInstance.parent && currentInstance.parent.provides;
     if (parentProvides === provides) {
@@ -2420,48 +2007,31 @@ function inject(key, defaultValue, treatDefaultAsFactory = false) {
       return provides[key];
     } else if (arguments.length > 1) {
       return treatDefaultAsFactory && isFunction(defaultValue) ? defaultValue.call(instance.proxy) : defaultValue;
-    } else {
-      warn$1(`injection "${String(key)}" not found.`);
-    }
-  } else {
-    warn$1(`inject() can only be used inside setup() or functional components.`);
+    } else
+      ;
   }
 }
 function watchEffect(effect2, options) {
   return doWatch(effect2, null, options);
 }
 function watchPostEffect(effect2, options) {
-  return doWatch(effect2, null, Object.assign(options || {}, { flush: "post" }));
+  return doWatch(effect2, null, { flush: "post" });
 }
 function watchSyncEffect(effect2, options) {
-  return doWatch(effect2, null, Object.assign(options || {}, { flush: "sync" }));
+  return doWatch(effect2, null, { flush: "sync" });
 }
 const INITIAL_WATCHER_VALUE = {};
 function watch(source, cb, options) {
-  if (!isFunction(cb)) {
-    warn$1(`\`watch(fn, options?)\` signature has been moved to a separate API. Use \`watchEffect(fn, options?)\` instead. \`watch\` now only supports \`watch(source, cb, options?) signature.`);
-  }
   return doWatch(source, cb, options);
 }
 function doWatch(source, cb, { immediate, deep, flush: flush2, onTrack, onTrigger } = EMPTY_OBJ) {
-  if (!cb) {
-    if (immediate !== void 0) {
-      warn$1(`watch() "immediate" option is only respected when using the watch(source, callback, options?) signature.`);
-    }
-    if (deep !== void 0) {
-      warn$1(`watch() "deep" option is only respected when using the watch(source, callback, options?) signature.`);
-    }
-  }
-  const warnInvalidSource = (s) => {
-    warn$1(`Invalid watch source: `, s, `A watch source can only be a getter/effect function, a ref, a reactive object, or an array of these types.`);
-  };
   const instance = currentInstance;
   let getter;
   let forceTrigger = false;
   let isMultiSource = false;
   if (isRef(source)) {
     getter = () => source.value;
-    forceTrigger = isShallow$1(source);
+    forceTrigger = isShallow(source);
   } else if (isReactive(source)) {
     getter = () => source;
     deep = true;
@@ -2475,9 +2045,8 @@ function doWatch(source, cb, { immediate, deep, flush: flush2, onTrack, onTrigge
         return traverse(s);
       } else if (isFunction(s)) {
         return callWithErrorHandling(s, instance, 2);
-      } else {
-        warnInvalidSource(s);
-      }
+      } else
+        ;
     });
   } else if (isFunction(source)) {
     if (cb) {
@@ -2495,7 +2064,6 @@ function doWatch(source, cb, { immediate, deep, flush: flush2, onTrack, onTrigge
     }
   } else {
     getter = NOOP;
-    warnInvalidSource(source);
   }
   if (cb && deep) {
     const baseGetter = getter;
@@ -2558,10 +2126,6 @@ function doWatch(source, cb, { immediate, deep, flush: flush2, onTrack, onTrigge
     };
   }
   const effect2 = new ReactiveEffect(getter, scheduler);
-  {
-    effect2.onTrack = onTrack;
-    effect2.onTrigger = onTrigger;
-  }
   if (cb) {
     if (immediate) {
       job();
@@ -2680,14 +2244,8 @@ const BaseTransitionImpl = {
       if (!children || !children.length) {
         return;
       }
-      if (children.length > 1) {
-        warn$1("<transition> can only be used on a single element or component. Use <transition-group> for lists.");
-      }
       const rawProps = toRaw(props);
       const { mode } = rawProps;
-      if (mode && mode !== "in-out" && mode !== "out-in" && mode !== "default") {
-        warn$1(`invalid <transition> mode: ${mode}`);
-      }
       const child = children[0];
       if (state.isLeaving) {
         return emptyPlaceholder(child);
@@ -2936,14 +2494,8 @@ function defineAsyncComponent(source) {
       if (thisRequest !== pendingRequest && pendingRequest) {
         return pendingRequest;
       }
-      if (!comp) {
-        warn$1(`Async component loader resolved to undefined. If you are using retry(), make sure to return its return value.`);
-      }
       if (comp && (comp.__esModule || comp[Symbol.toStringTag] === "Module")) {
         comp = comp.default;
-      }
-      if (comp && !isObject$p(comp) && !isFunction(comp)) {
-        throw new Error(`Invalid async component load result: ${comp}`);
       }
       resolvedComp = comp;
       return comp;
@@ -3037,9 +2589,6 @@ const KeepAliveImpl = {
     const cache = /* @__PURE__ */ new Map();
     const keys4 = /* @__PURE__ */ new Set();
     let current = null;
-    {
-      instance.__v_cache = cache;
-    }
     const parentSuspense = instance.suspense;
     const { renderer: { p: patch, m: move, um: _unmount, o: { createElement: createElement2 } } } = sharedContext;
     const storageContainer = createElement2("div");
@@ -3057,9 +2606,6 @@ const KeepAliveImpl = {
           invokeVNodeHook(vnodeHook, instance2.parent, vnode);
         }
       }, parentSuspense);
-      {
-        devtoolsComponentAdded(instance2);
-      }
     };
     sharedContext.deactivate = (vnode) => {
       const instance2 = vnode.component;
@@ -3074,9 +2620,6 @@ const KeepAliveImpl = {
         }
         instance2.isDeactivated = true;
       }, parentSuspense);
-      {
-        devtoolsComponentAdded(instance2);
-      }
     };
     function unmount(vnode) {
       resetShapeFlag(vnode);
@@ -3133,9 +2676,6 @@ const KeepAliveImpl = {
       const children = slots.default();
       const rawVNode = children[0];
       if (children.length > 1) {
-        {
-          warn$1(`KeepAlive should contain exactly one component child.`);
-        }
         current = null;
         return children;
       } else if (!isVNode(rawVNode) || !(rawVNode.shapeFlag & 4) && !(rawVNode.shapeFlag & 128)) {
@@ -3258,9 +2798,6 @@ function injectHook(type, hook, target = currentInstance, prepend = false) {
       hooks.push(wrappedHook);
     }
     return wrappedHook;
-  } else {
-    const apiName = toHandlerKey(ErrorTypeStrings[type].replace(/ hook$/, ""));
-    warn$1(`${apiName} is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement.`);
   }
 }
 const createHook = (lifecycle) => (hook, target = currentInstance) => (!isInSSRComponentSetup || lifecycle === "sp") && injectHook(lifecycle, hook, target);
@@ -3275,16 +2812,6 @@ const onRenderTriggered = createHook("rtg");
 const onRenderTracked = createHook("rtc");
 function onErrorCaptured(hook, target = currentInstance) {
   injectHook("ec", hook, target);
-}
-function createDuplicateChecker() {
-  const cache = /* @__PURE__ */ Object.create(null);
-  return (type, key) => {
-    if (cache[key]) {
-      warn$1(`${type} property "${key}" is already defined in ${cache[key]}.`);
-    } else {
-      cache[key] = type;
-    }
-  };
 }
 let shouldCacheAccess = true;
 function applyOptions(instance) {
@@ -3324,15 +2851,7 @@ function applyOptions(instance) {
     directives,
     filters
   } = options;
-  const checkDuplicateProperties = createDuplicateChecker();
-  {
-    const [propsOptions] = instance.propsOptions;
-    if (propsOptions) {
-      for (const key in propsOptions) {
-        checkDuplicateProperties("Props", key);
-      }
-    }
-  }
+  const checkDuplicateProperties = null;
   if (injectOptions) {
     resolveInjections(injectOptions, ctx, checkDuplicateProperties, instance.appContext.config.unwrapInjectedRef);
   }
@@ -3341,46 +2860,17 @@ function applyOptions(instance) {
       const methodHandler = methods[key];
       if (isFunction(methodHandler)) {
         {
-          Object.defineProperty(ctx, key, {
-            value: methodHandler.bind(publicThis),
-            configurable: true,
-            enumerable: true,
-            writable: true
-          });
+          ctx[key] = methodHandler.bind(publicThis);
         }
-        {
-          checkDuplicateProperties("Methods", key);
-        }
-      } else {
-        warn$1(`Method "${key}" has type "${typeof methodHandler}" in the component definition. Did you reference the function correctly?`);
       }
     }
   }
   if (dataOptions) {
-    if (!isFunction(dataOptions)) {
-      warn$1(`The data option must be a function. Plain object usage is no longer supported.`);
-    }
     const data2 = dataOptions.call(publicThis, publicThis);
-    if (isPromise$1(data2)) {
-      warn$1(`data() returned a Promise - note data() cannot be async; If you intend to perform data fetching before component renders, use async setup() + <Suspense>.`);
-    }
-    if (!isObject$p(data2)) {
-      warn$1(`data() should return an object.`);
-    } else {
+    if (!isObject$p(data2))
+      ;
+    else {
       instance.data = reactive(data2);
-      {
-        for (const key in data2) {
-          checkDuplicateProperties("Data", key);
-          if (key[0] !== "$" && key[0] !== "_") {
-            Object.defineProperty(ctx, key, {
-              configurable: true,
-              enumerable: true,
-              get: () => data2[key],
-              set: NOOP
-            });
-          }
-        }
-      }
     }
   }
   shouldCacheAccess = true;
@@ -3388,12 +2878,7 @@ function applyOptions(instance) {
     for (const key in computedOptions) {
       const opt = computedOptions[key];
       const get3 = isFunction(opt) ? opt.bind(publicThis, publicThis) : isFunction(opt.get) ? opt.get.bind(publicThis, publicThis) : NOOP;
-      if (get3 === NOOP) {
-        warn$1(`Computed property "${key}" has no getter.`);
-      }
-      const set2 = !isFunction(opt) && isFunction(opt.set) ? opt.set.bind(publicThis) : () => {
-        warn$1(`Write operation failed: computed property "${key}" is readonly.`);
-      };
+      const set2 = !isFunction(opt) && isFunction(opt.set) ? opt.set.bind(publicThis) : NOOP;
       const c = computed({
         get: get3,
         set: set2
@@ -3404,9 +2889,6 @@ function applyOptions(instance) {
         get: () => c.value,
         set: (v) => c.value = v
       });
-      {
-        checkDuplicateProperties("Computed", key);
-      }
     }
   }
   if (watchOptions) {
@@ -3491,16 +2973,10 @@ function resolveInjections(injectOptions, ctx, checkDuplicateProperties = NOOP, 
           set: (v) => injected.value = v
         });
       } else {
-        {
-          warn$1(`injected property "${key}" is a ref and will be auto-unwrapped and no longer needs \`.value\` in the next minor release. To opt-in to the new behavior now, set \`app.config.unwrapInjectedRef = true\` (this config is temporary and will not be needed in the future.)`);
-        }
         ctx[key] = injected;
       }
     } else {
       ctx[key] = injected;
-    }
-    {
-      checkDuplicateProperties("Inject", key);
     }
   }
 }
@@ -3513,8 +2989,6 @@ function createWatcher(raw, ctx, publicThis, key) {
     const handler = ctx[raw];
     if (isFunction(handler)) {
       watch(getter, handler);
-    } else {
-      warn$1(`Invalid watch handler specified by key "${raw}"`, handler);
     }
   } else if (isFunction(raw)) {
     watch(getter, raw.bind(publicThis));
@@ -3525,13 +2999,10 @@ function createWatcher(raw, ctx, publicThis, key) {
       const handler = isFunction(raw.handler) ? raw.handler.bind(publicThis) : ctx[raw.handler];
       if (isFunction(handler)) {
         watch(getter, handler, raw);
-      } else {
-        warn$1(`Invalid watch handler specified by key "${raw.handler}"`, handler);
       }
     }
-  } else {
-    warn$1(`Invalid watch option: "${key}"`, raw);
-  }
+  } else
+    ;
 }
 function resolveMergedOptions(instance) {
   const base = instance.type;
@@ -3564,9 +3035,9 @@ function mergeOptions$1(to, from4, strats, asMixin = false) {
     mixins.forEach((m) => mergeOptions$1(to, m, strats, true));
   }
   for (const key in from4) {
-    if (asMixin && key === "expose") {
-      warn$1(`"expose" option is ignored when declared in mixins or extends. It should only be declared in the base component itself.`);
-    } else {
+    if (asMixin && key === "expose")
+      ;
+    else {
       const strat = internalOptionMergeStrats[key] || strats && strats[key];
       to[key] = strat ? strat(to[key], from4[key]) : from4[key];
     }
@@ -3651,9 +3122,6 @@ function initProps(instance, rawProps, isStateful, isSSR = false) {
       props[key] = void 0;
     }
   }
-  {
-    validateProps(rawProps || {}, props, instance);
-  }
   if (isStateful) {
     instance.props = isSSR ? props : shallowReactive(props);
   } else {
@@ -3670,7 +3138,7 @@ function updateProps(instance, rawProps, rawPrevProps, optimized) {
   const rawCurrentProps = toRaw(props);
   const [options] = instance.propsOptions;
   let hasAttrsChanged = false;
-  if (!(instance.type.__hmrId || instance.parent && instance.parent.type.__hmrId) && (optimized || patchFlag > 0) && !(patchFlag & 16)) {
+  if ((optimized || patchFlag > 0) && !(patchFlag & 16)) {
     if (patchFlag & 8) {
       const propsToUpdate = instance.vnode.dynamicProps;
       for (let i2 = 0; i2 < propsToUpdate.length; i2++) {
@@ -3721,9 +3189,6 @@ function updateProps(instance, rawProps, rawPrevProps, optimized) {
   }
   if (hasAttrsChanged) {
     trigger$1(instance, "set", "$attrs");
-  }
-  {
-    validateProps(rawProps || {}, props, instance);
   }
 }
 function setFullProps(instance, rawProps, props, attrs) {
@@ -3824,18 +3289,12 @@ function normalizePropsOptions(comp, appContext, asMixin = false) {
   }
   if (isArray$c(raw)) {
     for (let i2 = 0; i2 < raw.length; i2++) {
-      if (!isString(raw[i2])) {
-        warn$1(`props must be strings when using array syntax.`, raw[i2]);
-      }
       const normalizedKey = camelize(raw[i2]);
       if (validatePropName(normalizedKey)) {
         normalized[normalizedKey] = EMPTY_OBJ;
       }
     }
   } else if (raw) {
-    if (!isObject$p(raw)) {
-      warn$1(`invalid props options`, raw);
-    }
     for (const key in raw) {
       const normalizedKey = camelize(key);
       if (validatePropName(normalizedKey)) {
@@ -3860,8 +3319,6 @@ function normalizePropsOptions(comp, appContext, asMixin = false) {
 function validatePropName(key) {
   if (key[0] !== "$") {
     return true;
-  } else {
-    warn$1(`Invalid prop name: "${key}" is a reserved property.`);
   }
   return false;
 }
@@ -3880,105 +3337,10 @@ function getTypeIndex(type, expectedTypes) {
   }
   return -1;
 }
-function validateProps(rawProps, props, instance) {
-  const resolvedValues = toRaw(props);
-  const options = instance.propsOptions[0];
-  for (const key in options) {
-    let opt = options[key];
-    if (opt == null)
-      continue;
-    validateProp(key, resolvedValues[key], opt, !hasOwn$k(rawProps, key) && !hasOwn$k(rawProps, hyphenate(key)));
-  }
-}
-function validateProp(name, value, prop, isAbsent) {
-  const { type, required, validator } = prop;
-  if (required && isAbsent) {
-    warn$1('Missing required prop: "' + name + '"');
-    return;
-  }
-  if (value == null && !prop.required) {
-    return;
-  }
-  if (type != null && type !== true) {
-    let isValid = false;
-    const types = isArray$c(type) ? type : [type];
-    const expectedTypes = [];
-    for (let i2 = 0; i2 < types.length && !isValid; i2++) {
-      const { valid, expectedType } = assertType(value, types[i2]);
-      expectedTypes.push(expectedType || "");
-      isValid = valid;
-    }
-    if (!isValid) {
-      warn$1(getInvalidTypeMessage(name, value, expectedTypes));
-      return;
-    }
-  }
-  if (validator && !validator(value)) {
-    warn$1('Invalid prop: custom validator check failed for prop "' + name + '".');
-  }
-}
-const isSimpleType = /* @__PURE__ */ makeMap("String,Number,Boolean,Function,Symbol,BigInt");
-function assertType(value, type) {
-  let valid;
-  const expectedType = getType(type);
-  if (isSimpleType(expectedType)) {
-    const t2 = typeof value;
-    valid = t2 === expectedType.toLowerCase();
-    if (!valid && t2 === "object") {
-      valid = value instanceof type;
-    }
-  } else if (expectedType === "Object") {
-    valid = isObject$p(value);
-  } else if (expectedType === "Array") {
-    valid = isArray$c(value);
-  } else if (expectedType === "null") {
-    valid = value === null;
-  } else {
-    valid = value instanceof type;
-  }
-  return {
-    valid,
-    expectedType
-  };
-}
-function getInvalidTypeMessage(name, value, expectedTypes) {
-  let message = `Invalid prop: type check failed for prop "${name}". Expected ${expectedTypes.map(capitalize).join(" | ")}`;
-  const expectedType = expectedTypes[0];
-  const receivedType = toRawType(value);
-  const expectedValue = styleValue(value, expectedType);
-  const receivedValue = styleValue(value, receivedType);
-  if (expectedTypes.length === 1 && isExplicable(expectedType) && !isBoolean(expectedType, receivedType)) {
-    message += ` with value ${expectedValue}`;
-  }
-  message += `, got ${receivedType} `;
-  if (isExplicable(receivedType)) {
-    message += `with value ${receivedValue}.`;
-  }
-  return message;
-}
-function styleValue(value, type) {
-  if (type === "String") {
-    return `"${value}"`;
-  } else if (type === "Number") {
-    return `${Number(value)}`;
-  } else {
-    return `${value}`;
-  }
-}
-function isExplicable(type) {
-  const explicitTypes = ["string", "number", "boolean"];
-  return explicitTypes.some((elem) => type.toLowerCase() === elem);
-}
-function isBoolean(...args) {
-  return args.some((elem) => elem.toLowerCase() === "boolean");
-}
 const isInternalKey = (key) => key[0] === "_" || key === "$stable";
 const normalizeSlotValue = (value) => isArray$c(value) ? value.map(normalizeVNode) : [normalizeVNode(value)];
 const normalizeSlot$1 = (key, rawSlot, ctx) => {
   const normalized = withCtx((...args) => {
-    if (currentInstance) {
-      warn$1(`Slot "${key}" invoked outside of the render function: this will not track dependencies used in the slot. Invoke the slot function inside the render function instead.`);
-    }
     return normalizeSlotValue(rawSlot(...args));
   }, ctx);
   normalized._c = false;
@@ -3993,18 +3355,12 @@ const normalizeObjectSlots = (rawSlots, slots, instance) => {
     if (isFunction(value)) {
       slots[key] = normalizeSlot$1(key, value, ctx);
     } else if (value != null) {
-      {
-        warn$1(`Non-function value encountered for slot "${key}". Prefer function slots for better performance.`);
-      }
       const normalized = normalizeSlotValue(value);
       slots[key] = () => normalized;
     }
   }
 };
 const normalizeVNodeSlots = (instance, children) => {
-  if (!isKeepAlive(instance.vnode) && true) {
-    warn$1(`Non-function value encountered for default slot. Prefer function slots for better performance.`);
-  }
   const normalized = normalizeSlotValue(children);
   instance.slots.default = () => normalized;
 };
@@ -4032,9 +3388,7 @@ const updateSlots = (instance, children, optimized) => {
   if (vnode.shapeFlag & 32) {
     const type = children._;
     if (type) {
-      if (isHmrUpdating) {
-        extend(slots, children);
-      } else if (optimized && type === 1) {
+      if (optimized && type === 1) {
         needDeletionCheck = false;
       } else {
         extend(slots, children);
@@ -4059,15 +3413,9 @@ const updateSlots = (instance, children, optimized) => {
     }
   }
 };
-function validateDirectiveName(name) {
-  if (isBuiltInDirective(name)) {
-    warn$1("Do not use built-in directive ids as custom directive id: " + name);
-  }
-}
 function withDirectives(vnode, directives) {
   const internalInstance = currentRenderingInstance;
   if (internalInstance === null) {
-    warn$1(`withDirectives can only be used inside render functions.`);
     return vnode;
   }
   const instance = internalInstance.proxy;
@@ -4140,7 +3488,6 @@ let uid$5 = 0;
 function createAppAPI(render2, hydrate2) {
   return function createApp2(rootComponent, rootProps = null) {
     if (rootProps != null && !isObject$p(rootProps)) {
-      warn$1(`root props passed to app.mount() must be an object.`);
       rootProps = null;
     }
     const context = createAppContext();
@@ -4158,56 +3505,38 @@ function createAppAPI(render2, hydrate2) {
         return context.config;
       },
       set config(v) {
-        {
-          warn$1(`app.config cannot be replaced. Modify individual options instead.`);
-        }
       },
       use(plugin, ...options) {
-        if (installedPlugins.has(plugin)) {
-          warn$1(`Plugin has already been applied to target app.`);
-        } else if (plugin && isFunction(plugin.install)) {
+        if (installedPlugins.has(plugin))
+          ;
+        else if (plugin && isFunction(plugin.install)) {
           installedPlugins.add(plugin);
           plugin.install(app, ...options);
         } else if (isFunction(plugin)) {
           installedPlugins.add(plugin);
           plugin(app, ...options);
-        } else {
-          warn$1(`A plugin must either be a function or an object with an "install" function.`);
-        }
+        } else
+          ;
         return app;
       },
       mixin(mixin) {
         {
           if (!context.mixins.includes(mixin)) {
             context.mixins.push(mixin);
-          } else {
-            warn$1("Mixin has already been applied to target app" + (mixin.name ? `: ${mixin.name}` : ""));
           }
         }
         return app;
       },
       component(name, component) {
-        {
-          validateComponentName(name, context.config);
-        }
         if (!component) {
           return context.components[name];
-        }
-        if (context.components[name]) {
-          warn$1(`Component "${name}" has already been registered in target app.`);
         }
         context.components[name] = component;
         return app;
       },
       directive(name, directive) {
-        {
-          validateDirectiveName(name);
-        }
         if (!directive) {
           return context.directives[name];
-        }
-        if (context.directives[name]) {
-          warn$1(`Directive "${name}" has already been registered in target app.`);
         }
         context.directives[name] = directive;
         return app;
@@ -4216,11 +3545,6 @@ function createAppAPI(render2, hydrate2) {
         if (!isMounted) {
           const vnode = createVNode(rootComponent, rootProps);
           vnode.appContext = context;
-          {
-            context.reload = () => {
-              render2(cloneVNode(vnode), rootContainer, isSVG);
-            };
-          }
           if (isHydrate && hydrate2) {
             hydrate2(vnode, rootContainer);
           } else {
@@ -4229,32 +3553,16 @@ function createAppAPI(render2, hydrate2) {
           isMounted = true;
           app._container = rootContainer;
           rootContainer.__vue_app__ = app;
-          {
-            app._instance = vnode.component;
-            devtoolsInitApp(app, version$1);
-          }
           return getExposeProxy(vnode.component) || vnode.component.proxy;
-        } else {
-          warn$1(`App has already been mounted.
-If you want to remount the same app, move your app creation logic into a factory function and create fresh app instances for each mount - e.g. \`const createMyApp = () => createApp(App)\``);
         }
       },
       unmount() {
         if (isMounted) {
           render2(null, app._container);
-          {
-            app._instance = null;
-            devtoolsUnmountApp(app);
-          }
           delete app._container.__vue_app__;
-        } else {
-          warn$1(`Cannot unmount an app that is not mounted.`);
         }
       },
       provide(key, value) {
-        if (key in context.provides) {
-          warn$1(`App already provides property with key "${String(key)}". It will be overwritten with the new value.`);
-        }
         context.provides[key] = value;
         return app;
       }
@@ -4273,10 +3581,6 @@ function setRef(rawRef, oldRawRef, parentSuspense, vnode, isUnmount = false) {
   const refValue = vnode.shapeFlag & 4 ? getExposeProxy(vnode.component) || vnode.component.proxy : vnode.el;
   const value = isUnmount ? null : refValue;
   const { i: owner, r: ref2 } = rawRef;
-  if (!owner) {
-    warn$1(`Missing ref owner context. ref cannot be used on hoisted vnodes. A vnode with ref must be created inside the render function.`);
-    return;
-  }
   const oldRef = oldRawRef && oldRawRef.r;
   const refs = owner.refs === EMPTY_OBJ ? owner.refs = {} : owner.refs;
   const setupState = owner.setupState;
@@ -4323,9 +3627,8 @@ function setRef(rawRef, oldRawRef, parentSuspense, vnode, isUnmount = false) {
           ref2.value = value;
           if (rawRef.k)
             refs[rawRef.k] = value;
-        } else {
-          warn$1("Invalid template ref type:", ref2, `(${typeof ref2})`);
-        }
+        } else
+          ;
       };
       if (value) {
         doSet.id = -1;
@@ -4333,8 +3636,6 @@ function setRef(rawRef, oldRawRef, parentSuspense, vnode, isUnmount = false) {
       } else {
         doSet();
       }
-    } else {
-      warn$1("Invalid template ref type:", ref2, `(${typeof ref2})`);
     }
   }
 }
@@ -4345,7 +3646,6 @@ function createHydrationFunctions(rendererInternals) {
   const { mt: mountComponent, p: patch, o: { patchProp: patchProp2, nextSibling, parentNode, remove: remove2, insert, createComment } } = rendererInternals;
   const hydrate2 = (vnode, container) => {
     if (!container.hasChildNodes()) {
-      warn$1(`Attempting to hydrate existing markup but container is empty. Performing full mount instead.`);
       patch(null, vnode, container);
       flushPostFlushCbs();
       return;
@@ -4371,9 +3671,6 @@ function createHydrationFunctions(rendererInternals) {
         } else {
           if (node2.data !== vnode.children) {
             hasMismatch = true;
-            warn$1(`Hydration text mismatch:
-- Client: ${JSON.stringify(node2.data)}
-- Server: ${JSON.stringify(vnode.children)}`);
             node2.data = vnode.children;
           }
           nextNode = nextSibling(node2);
@@ -4441,9 +3738,8 @@ function createHydrationFunctions(rendererInternals) {
           }
         } else if (shapeFlag & 128) {
           nextNode = vnode.type.hydrate(node2, vnode, parentComponent, parentSuspense, isSVGContainer(parentNode(node2)), slotScopeIds, optimized, rendererInternals, hydrateNode);
-        } else {
-          warn$1("Invalid HostVNode type:", type, `(${typeof type})`);
-        }
+        } else
+          ;
     }
     if (ref2 != null) {
       setRef(ref2, null, parentSuspense, vnode);
@@ -4454,7 +3750,7 @@ function createHydrationFunctions(rendererInternals) {
     optimized = optimized || !!vnode.dynamicChildren;
     const { type, props, patchFlag, shapeFlag, dirs } = vnode;
     const forcePatchValue = type === "input" && dirs || type === "option";
-    {
+    if (forcePatchValue || patchFlag !== -1) {
       if (dirs) {
         invokeDirectiveHook(vnode, null, parentComponent, "created");
       }
@@ -4484,13 +3780,8 @@ function createHydrationFunctions(rendererInternals) {
       }
       if (shapeFlag & 16 && !(props && (props.innerHTML || props.textContent))) {
         let next2 = hydrateChildren(el.firstChild, vnode, el, parentComponent, parentSuspense, slotScopeIds, optimized);
-        let hasWarned2 = false;
         while (next2) {
           hasMismatch = true;
-          if (!hasWarned2) {
-            warn$1(`Hydration children mismatch in <${vnode.type}>: server rendered element contains more child nodes than client vdom.`);
-            hasWarned2 = true;
-          }
           const cur = next2;
           next2 = next2.nextSibling;
           remove2(cur);
@@ -4498,9 +3789,6 @@ function createHydrationFunctions(rendererInternals) {
       } else if (shapeFlag & 8) {
         if (el.textContent !== vnode.children) {
           hasMismatch = true;
-          warn$1(`Hydration text content mismatch in <${vnode.type}>:
-- Client: ${el.textContent}
-- Server: ${vnode.children}`);
           el.textContent = vnode.children;
         }
       }
@@ -4511,7 +3799,6 @@ function createHydrationFunctions(rendererInternals) {
     optimized = optimized || !!parentVNode.dynamicChildren;
     const children = parentVNode.children;
     const l = children.length;
-    let hasWarned2 = false;
     for (let i2 = 0; i2 < l; i2++) {
       const vnode = optimized ? children[i2] : children[i2] = normalizeVNode(children[i2]);
       if (node2) {
@@ -4520,10 +3807,6 @@ function createHydrationFunctions(rendererInternals) {
         continue;
       } else {
         hasMismatch = true;
-        if (!hasWarned2) {
-          warn$1(`Hydration children mismatch in <${container.tagName.toLowerCase()}>: server rendered element contains fewer child nodes than client vdom.`);
-          hasWarned2 = true;
-        }
         patch(null, vnode, container, null, parentComponent, parentSuspense, isSVGContainer(container), slotScopeIds);
       }
     }
@@ -4546,9 +3829,6 @@ function createHydrationFunctions(rendererInternals) {
   };
   const handleMismatch = (node2, vnode, parentComponent, parentSuspense, slotScopeIds, isFragment) => {
     hasMismatch = true;
-    warn$1(`Hydration node mismatch:
-- Client vnode:`, vnode.type, `
-- Server rendered DOM:`, node2, node2.nodeType === 3 ? `(text)` : isComment(node2) && node2.data === "[" ? `(start of fragment)` : ``);
     vnode.el = null;
     if (isFragment) {
       const end = locateClosingAsyncAnchor(node2);
@@ -4587,50 +3867,6 @@ function createHydrationFunctions(rendererInternals) {
   };
   return [hydrate2, hydrateNode];
 }
-let supported;
-let perf;
-function startMeasure(instance, type) {
-  if (instance.appContext.config.performance && isSupported()) {
-    perf.mark(`vue-${type}-${instance.uid}`);
-  }
-  {
-    devtoolsPerfStart(instance, type, supported ? perf.now() : Date.now());
-  }
-}
-function endMeasure(instance, type) {
-  if (instance.appContext.config.performance && isSupported()) {
-    const startTag = `vue-${type}-${instance.uid}`;
-    const endTag = startTag + `:end`;
-    perf.mark(endTag);
-    perf.measure(`<${formatComponentName(instance, instance.type)}> ${type}`, startTag, endTag);
-    perf.clearMarks(startTag);
-    perf.clearMarks(endTag);
-  }
-  {
-    devtoolsPerfEnd(instance, type, supported ? perf.now() : Date.now());
-  }
-}
-function isSupported() {
-  if (supported !== void 0) {
-    return supported;
-  }
-  if (typeof window !== "undefined" && window.performance) {
-    supported = true;
-    perf = window.performance;
-  } else {
-    supported = false;
-  }
-  return supported;
-}
-function initFeatureFlags() {
-  const needWarn = [];
-  if (needWarn.length) {
-    const multi = needWarn.length > 1;
-    console.warn(`Feature flag${multi ? `s` : ``} ${needWarn.join(", ")} ${multi ? `are` : `is`} not explicitly defined. You are running the esm-bundler build of Vue, which expects these compile-time feature flags to be globally injected via the bundler config in order to get better tree-shaking in the production bundle.
-
-For more details, see https://link.vuejs.org/feature-flags.`);
-  }
-}
 const queuePostRenderEffect = queueEffectWithSuspense;
 function createRenderer(options) {
   return baseCreateRenderer(options);
@@ -4639,16 +3875,10 @@ function createHydrationRenderer(options) {
   return baseCreateRenderer(options, createHydrationFunctions);
 }
 function baseCreateRenderer(options, createHydrationFns) {
-  {
-    initFeatureFlags();
-  }
   const target = getGlobalThis();
   target.__VUE__ = true;
-  {
-    setDevtoolsHook(target.__VUE_DEVTOOLS_GLOBAL_HOOK__, target);
-  }
   const { insert: hostInsert, remove: hostRemove, patchProp: hostPatchProp, createElement: hostCreateElement, createText: hostCreateText, createComment: hostCreateComment, setText: hostSetText, setElementText: hostSetElementText, parentNode: hostParentNode, nextSibling: hostNextSibling, setScopeId: hostSetScopeId = NOOP, cloneNode: hostCloneNode, insertStaticContent: hostInsertStaticContent } = options;
-  const patch = (n1, n2, container, anchor = null, parentComponent = null, parentSuspense = null, isSVG = false, slotScopeIds = null, optimized = isHmrUpdating ? false : !!n2.dynamicChildren) => {
+  const patch = (n1, n2, container, anchor = null, parentComponent = null, parentSuspense = null, isSVG = false, slotScopeIds = null, optimized = !!n2.dynamicChildren) => {
     if (n1 === n2) {
       return;
     }
@@ -4672,8 +3902,6 @@ function baseCreateRenderer(options, createHydrationFns) {
       case Static:
         if (n1 == null) {
           mountStaticNode(n2, container, anchor, isSVG);
-        } else {
-          patchStaticNode(n1, n2, container, isSVG);
         }
         break;
       case Fragment:
@@ -4688,9 +3916,8 @@ function baseCreateRenderer(options, createHydrationFns) {
           type.process(n1, n2, container, anchor, parentComponent, parentSuspense, isSVG, slotScopeIds, optimized, internals);
         } else if (shapeFlag & 128) {
           type.process(n1, n2, container, anchor, parentComponent, parentSuspense, isSVG, slotScopeIds, optimized, internals);
-        } else {
-          warn$1("Invalid VNode type:", type, `(${typeof type})`);
-        }
+        } else
+          ;
     }
     if (ref2 != null && parentComponent) {
       setRef(ref2, n1 && n1.ref, parentSuspense, n2 || n1, !n2);
@@ -4715,16 +3942,6 @@ function baseCreateRenderer(options, createHydrationFns) {
   };
   const mountStaticNode = (n2, container, anchor, isSVG) => {
     [n2.el, n2.anchor] = hostInsertStaticContent(n2.children, container, anchor, isSVG, n2.el, n2.anchor);
-  };
-  const patchStaticNode = (n1, n2, container, isSVG) => {
-    if (n2.children !== n1.children) {
-      const anchor = hostNextSibling(n1.anchor);
-      removeStaticNode(n1);
-      [n2.el, n2.anchor] = hostInsertStaticContent(n2.children, container, anchor, isSVG);
-    } else {
-      n2.el = n1.el;
-      n2.anchor = n1.anchor;
-    }
   };
   const moveStaticNode = ({ el, anchor }, container, nextSibling) => {
     let next2;
@@ -4756,7 +3973,9 @@ function baseCreateRenderer(options, createHydrationFns) {
     let el;
     let vnodeHook;
     const { type, props, shapeFlag, transition, patchFlag, dirs } = vnode;
-    {
+    if (vnode.el && hostCloneNode !== void 0 && patchFlag === -1) {
+      el = vnode.el = hostCloneNode(vnode.el);
+    } else {
       el = vnode.el = hostCreateElement(vnode.type, isSVG, props && props.is, props);
       if (shapeFlag & 8) {
         hostSetElementText(el, vnode.children);
@@ -4780,16 +3999,6 @@ function baseCreateRenderer(options, createHydrationFns) {
         }
       }
       setScopeId(el, vnode, vnode.scopeId, slotScopeIds, parentComponent);
-    }
-    {
-      Object.defineProperty(el, "__vnode", {
-        value: vnode,
-        enumerable: false
-      });
-      Object.defineProperty(el, "__vueParentComponent", {
-        value: parentComponent,
-        enumerable: false
-      });
     }
     if (dirs) {
       invokeDirectiveHook(vnode, null, parentComponent, "beforeMount");
@@ -4818,9 +4027,6 @@ function baseCreateRenderer(options, createHydrationFns) {
     }
     if (parentComponent) {
       let subTree = parentComponent.subTree;
-      if (subTree.patchFlag > 0 && subTree.patchFlag & 2048) {
-        subTree = filterSingleRoot(subTree.children) || subTree;
-      }
       if (vnode === subTree) {
         const parentVNode = parentComponent.vnode;
         setScopeId(el, parentVNode, parentVNode.scopeId, parentVNode.slotScopeIds, parentComponent.parent);
@@ -4848,17 +4054,9 @@ function baseCreateRenderer(options, createHydrationFns) {
       invokeDirectiveHook(n2, n1, parentComponent, "beforeUpdate");
     }
     parentComponent && toggleRecurse(parentComponent, true);
-    if (isHmrUpdating) {
-      patchFlag = 0;
-      optimized = false;
-      dynamicChildren = null;
-    }
     const areChildrenSVG = isSVG && n2.type !== "foreignObject";
     if (dynamicChildren) {
       patchBlockChildren(n1.dynamicChildren, dynamicChildren, el, parentComponent, parentSuspense, areChildrenSVG, slotScopeIds);
-      if (parentComponent && parentComponent.type.__hmrId) {
-        traverseStaticChildren(n1, n2);
-      }
     } else if (!optimized) {
       patchChildren(n1, n2, el, null, parentComponent, parentSuspense, areChildrenSVG, slotScopeIds, false);
     }
@@ -4936,11 +4134,6 @@ function baseCreateRenderer(options, createHydrationFns) {
     const fragmentStartAnchor = n2.el = n1 ? n1.el : hostCreateText("");
     const fragmentEndAnchor = n2.anchor = n1 ? n1.anchor : hostCreateText("");
     let { patchFlag, dynamicChildren, slotScopeIds: fragmentSlotScopeIds } = n2;
-    if (isHmrUpdating) {
-      patchFlag = 0;
-      optimized = false;
-      dynamicChildren = null;
-    }
     if (fragmentSlotScopeIds) {
       slotScopeIds = slotScopeIds ? slotScopeIds.concat(fragmentSlotScopeIds) : fragmentSlotScopeIds;
     }
@@ -4951,9 +4144,7 @@ function baseCreateRenderer(options, createHydrationFns) {
     } else {
       if (patchFlag > 0 && patchFlag & 64 && dynamicChildren && n1.dynamicChildren) {
         patchBlockChildren(n1.dynamicChildren, dynamicChildren, container, parentComponent, parentSuspense, isSVG, slotScopeIds);
-        if (parentComponent && parentComponent.type.__hmrId) {
-          traverseStaticChildren(n1, n2);
-        } else if (n2.key != null || parentComponent && n2 === parentComponent.subTree) {
+        if (n2.key != null || parentComponent && n2 === parentComponent.subTree) {
           traverseStaticChildren(n1, n2, true);
         }
       } else {
@@ -4975,24 +4166,11 @@ function baseCreateRenderer(options, createHydrationFns) {
   };
   const mountComponent = (initialVNode, container, anchor, parentComponent, parentSuspense, isSVG, optimized) => {
     const instance = initialVNode.component = createComponentInstance(initialVNode, parentComponent, parentSuspense);
-    if (instance.type.__hmrId) {
-      registerHMR(instance);
-    }
-    {
-      pushWarningContext(initialVNode);
-      startMeasure(instance, `mount`);
-    }
     if (isKeepAlive(initialVNode)) {
       instance.ctx.renderer = internals;
     }
     {
-      {
-        startMeasure(instance, `init`);
-      }
       setupComponent(instance);
-      {
-        endMeasure(instance, `init`);
-      }
     }
     if (instance.asyncDep) {
       parentSuspense && parentSuspense.registerDep(instance, setupRenderEffect);
@@ -5003,22 +4181,12 @@ function baseCreateRenderer(options, createHydrationFns) {
       return;
     }
     setupRenderEffect(instance, initialVNode, container, anchor, parentSuspense, isSVG, optimized);
-    {
-      popWarningContext();
-      endMeasure(instance, `mount`);
-    }
   };
   const updateComponent = (n1, n2, optimized) => {
     const instance = n2.component = n1.component;
     if (shouldUpdateComponent(n1, n2, optimized)) {
       if (instance.asyncDep && !instance.asyncResolved) {
-        {
-          pushWarningContext(n2);
-        }
         updateComponentPreRender(instance, n2, optimized);
-        {
-          popWarningContext();
-        }
         return;
       } else {
         instance.next = n2;
@@ -5048,20 +4216,8 @@ function baseCreateRenderer(options, createHydrationFns) {
         toggleRecurse(instance, true);
         if (el && hydrateNode) {
           const hydrateSubTree = () => {
-            {
-              startMeasure(instance, `render`);
-            }
             instance.subTree = renderComponentRoot(instance);
-            {
-              endMeasure(instance, `render`);
-            }
-            {
-              startMeasure(instance, `hydrate`);
-            }
             hydrateNode(el, instance.subTree, instance, parentSuspense, null);
-            {
-              endMeasure(instance, `hydrate`);
-            }
           };
           if (isAsyncWrapperVNode) {
             initialVNode.type.__asyncLoader().then(() => !instance.isUnmounted && hydrateSubTree());
@@ -5069,20 +4225,8 @@ function baseCreateRenderer(options, createHydrationFns) {
             hydrateSubTree();
           }
         } else {
-          {
-            startMeasure(instance, `render`);
-          }
           const subTree = instance.subTree = renderComponentRoot(instance);
-          {
-            endMeasure(instance, `render`);
-          }
-          {
-            startMeasure(instance, `patch`);
-          }
           patch(null, subTree, container, anchor, instance, parentSuspense, isSVG);
-          {
-            endMeasure(instance, `patch`);
-          }
           initialVNode.el = subTree.el;
         }
         if (m) {
@@ -5096,17 +4240,11 @@ function baseCreateRenderer(options, createHydrationFns) {
           instance.a && queuePostRenderEffect(instance.a, parentSuspense);
         }
         instance.isMounted = true;
-        {
-          devtoolsComponentAdded(instance);
-        }
         initialVNode = container = anchor = null;
       } else {
         let { next: next2, bu, u: u2, parent: parent2, vnode } = instance;
         let originNext = next2;
         let vnodeHook;
-        {
-          pushWarningContext(next2 || instance.vnode);
-        }
         toggleRecurse(instance, false);
         if (next2) {
           next2.el = vnode.el;
@@ -5121,22 +4259,10 @@ function baseCreateRenderer(options, createHydrationFns) {
           invokeVNodeHook(vnodeHook, parent2, next2, vnode);
         }
         toggleRecurse(instance, true);
-        {
-          startMeasure(instance, `render`);
-        }
         const nextTree = renderComponentRoot(instance);
-        {
-          endMeasure(instance, `render`);
-        }
         const prevTree = instance.subTree;
         instance.subTree = nextTree;
-        {
-          startMeasure(instance, `patch`);
-        }
         patch(prevTree, nextTree, hostParentNode(prevTree.el), getNextHostNode(prevTree), instance, parentSuspense, isSVG);
-        {
-          endMeasure(instance, `patch`);
-        }
         next2.el = nextTree.el;
         if (originNext === null) {
           updateHOCHostEl(instance, nextTree.el);
@@ -5147,23 +4273,12 @@ function baseCreateRenderer(options, createHydrationFns) {
         if (vnodeHook = next2.props && next2.props.onVnodeUpdated) {
           queuePostRenderEffect(() => invokeVNodeHook(vnodeHook, parent2, next2, vnode), parentSuspense);
         }
-        {
-          devtoolsComponentUpdated(instance);
-        }
-        {
-          popWarningContext();
-        }
       }
     };
     const effect2 = instance.effect = new ReactiveEffect(componentUpdateFn, () => queueJob(instance.update), instance.scope);
     const update4 = instance.update = effect2.run.bind(effect2);
     update4.id = instance.uid;
     toggleRecurse(instance, true);
-    {
-      effect2.onTrack = instance.rtc ? (e2) => invokeArrayFns(instance.rtc, e2) : void 0;
-      effect2.onTrigger = instance.rtg ? (e2) => invokeArrayFns(instance.rtg, e2) : void 0;
-      update4.ownerInstance = instance;
-    }
     update4();
   };
   const updateComponentPreRender = (instance, nextVNode, optimized) => {
@@ -5279,9 +4394,6 @@ function baseCreateRenderer(options, createHydrationFns) {
       for (i2 = s2; i2 <= e2; i2++) {
         const nextChild = c2[i2] = optimized ? cloneIfMounted(c2[i2]) : normalizeVNode(c2[i2]);
         if (nextChild.key != null) {
-          if (keyToNewIndexMap.has(nextChild.key)) {
-            warn$1(`Duplicate keys found during update:`, JSON.stringify(nextChild.key), `Make sure keys are unique.`);
-          }
           keyToNewIndexMap.set(nextChild.key, i2);
         }
       }
@@ -5473,9 +4585,6 @@ function baseCreateRenderer(options, createHydrationFns) {
     hostRemove(end);
   };
   const unmountComponent = (instance, parentSuspense, doRemove) => {
-    if (instance.type.__hmrId) {
-      unregisterHMR(instance);
-    }
     const { bum, scope, update: update4, subTree, um } = instance;
     if (bum) {
       invokeArrayFns(bum);
@@ -5496,9 +4605,6 @@ function baseCreateRenderer(options, createHydrationFns) {
       if (parentSuspense.deps === 0) {
         parentSuspense.resolve();
       }
-    }
-    {
-      devtoolsComponentRemoved(instance);
     }
   };
   const unmountChildren = (children, parentComponent, parentSuspense, doRemove = false, optimized = false, start = 0) => {
@@ -5567,9 +4673,6 @@ function traverseStaticChildren(n1, n2, shallow = false) {
         if (!shallow)
           traverseStaticChildren(c1, c2);
       }
-      if (c2.type === Comment && !c2.el) {
-        c2.el = c1.el;
-      }
     }
   }
 }
@@ -5620,19 +4723,12 @@ const resolveTarget = (props, select) => {
   const targetSelector = props && props.to;
   if (isString(targetSelector)) {
     if (!select) {
-      warn$1(`Current renderer does not support string target for Teleports. (missing querySelector renderer option)`);
       return null;
     } else {
       const target = select(targetSelector);
-      if (!target) {
-        warn$1(`Failed to locate Teleport target with selector "${targetSelector}". Note the target element must exist before the component is mounted - i.e. the target cannot be rendered by the component itself, and ideally should be outside of the entire Vue component tree.`);
-      }
       return target;
     }
   } else {
-    if (!targetSelector && !isTeleportDisabled(props)) {
-      warn$1(`Invalid Teleport target: ${targetSelector}`);
-    }
     return targetSelector;
   }
 };
@@ -5642,13 +4738,9 @@ const TeleportImpl = {
     const { mc: mountChildren, pc: patchChildren, pbc: patchBlockChildren, o: { insert, querySelector, createText, createComment } } = internals;
     const disabled = isTeleportDisabled(n2.props);
     let { shapeFlag, children, dynamicChildren } = n2;
-    if (isHmrUpdating) {
-      optimized = false;
-      dynamicChildren = null;
-    }
     if (n1 == null) {
-      const placeholder = n2.el = createComment("teleport start");
-      const mainAnchor = n2.anchor = createComment("teleport end");
+      const placeholder = n2.el = createText("");
+      const mainAnchor = n2.anchor = createText("");
       insert(placeholder, container, anchor);
       insert(mainAnchor, container, anchor);
       const target = n2.target = resolveTarget(n2.props, querySelector);
@@ -5656,8 +4748,6 @@ const TeleportImpl = {
       if (target) {
         insert(targetAnchor, target);
         isSVG = isSVG || isTargetSVG(target);
-      } else if (!disabled) {
-        warn$1("Invalid Teleport target on mount:", target, `(${typeof target})`);
       }
       const mount = (container2, anchor2) => {
         if (shapeFlag & 16) {
@@ -5693,8 +4783,6 @@ const TeleportImpl = {
           const nextTarget = n2.target = resolveTarget(n2.props, querySelector);
           if (nextTarget) {
             moveTeleport(n2, nextTarget, null, internals, 0);
-          } else {
-            warn$1("Invalid Teleport target on update:", target, `(${typeof target})`);
           }
         } else if (wasDisabled) {
           moveTeleport(n2, target, targetAnchor, internals, 1);
@@ -5788,23 +4876,16 @@ function resolveAsset(type, name, warnMissing = true, maybeSelfReference = false
     if (!res && maybeSelfReference) {
       return Component;
     }
-    if (warnMissing && !res) {
-      const extra = type === COMPONENTS ? `
-If this is a native custom element, make sure to exclude it from component resolution via compilerOptions.isCustomElement.` : ``;
-      warn$1(`Failed to resolve ${type.slice(0, -1)}: ${name}${extra}`);
-    }
     return res;
-  } else {
-    warn$1(`resolve${capitalize(type.slice(0, -1))} can only be used in render() or setup().`);
   }
 }
 function resolve(registry, name) {
   return registry && (registry[name] || registry[camelize(name)] || registry[capitalize(camelize(name))]);
 }
-const Fragment = Symbol("Fragment");
-const Text = Symbol("Text");
-const Comment = Symbol("Comment");
-const Static = Symbol("Static");
+const Fragment = Symbol(void 0);
+const Text = Symbol(void 0);
+const Comment = Symbol(void 0);
+const Static = Symbol(void 0);
 const blockStack = [];
 let currentBlock = null;
 function openBlock(disableTracking = false) {
@@ -5836,18 +4917,10 @@ function isVNode(value) {
   return value ? value.__v_isVNode === true : false;
 }
 function isSameVNodeType(n1, n2) {
-  if (n2.shapeFlag & 6 && hmrDirtyComponents.has(n2.type)) {
-    return false;
-  }
   return n1.type === n2.type && n1.key === n2.key;
 }
-let vnodeArgsTransformer;
 function transformVNodeArgs(transformer) {
-  vnodeArgsTransformer = transformer;
 }
-const createVNodeWithArgsTransform = (...args) => {
-  return _createVNode(...vnodeArgsTransformer ? vnodeArgsTransformer(args, currentRenderingInstance) : args);
-};
 const InternalObjectKey = `__vInternal`;
 const normalizeKey = ({ key }) => key != null ? key : null;
 const normalizeRef = ({ ref: ref2, ref_key, ref_for }) => {
@@ -5889,20 +4962,14 @@ function createBaseVNode(type, props = null, children = null, patchFlag = 0, dyn
   } else if (children) {
     vnode.shapeFlag |= isString(children) ? 8 : 16;
   }
-  if (vnode.key !== vnode.key) {
-    warn$1(`VNode created with invalid key (NaN). VNode type:`, vnode.type);
-  }
   if (isBlockTreeEnabled > 0 && !isBlockNode && currentBlock && (vnode.patchFlag > 0 || shapeFlag & 6) && vnode.patchFlag !== 32) {
     currentBlock.push(vnode);
   }
   return vnode;
 }
-const createVNode = createVNodeWithArgsTransform;
+const createVNode = _createVNode;
 function _createVNode(type, props = null, children = null, patchFlag = 0, dynamicProps = null, isBlockNode = false) {
   if (!type || type === NULL_DYNAMIC_COMPONENT) {
-    if (!type) {
-      warn$1(`Invalid vnode type when creating vnode: ${type}.`);
-    }
     type = Comment;
   }
   if (isVNode(type)) {
@@ -5929,11 +4996,6 @@ function _createVNode(type, props = null, children = null, patchFlag = 0, dynami
     }
   }
   const shapeFlag = isString(type) ? 1 : isSuspense(type) ? 128 : isTeleport(type) ? 64 : isObject$p(type) ? 4 : isFunction(type) ? 2 : 0;
-  if (shapeFlag & 4 && isProxy(type)) {
-    type = toRaw(type);
-    warn$1(`Vue received a Component which was made a reactive object. This can lead to unnecessary performance overhead, and should be avoided by marking the component with \`markRaw\` or using \`shallowRef\` instead of \`ref\`.`, `
-Component that was made reactive: `, type);
-  }
   return createBaseVNode(type, props, children, patchFlag, dynamicProps, shapeFlag, isBlockNode, true);
 }
 function guardReactiveProps(props) {
@@ -5953,7 +5015,7 @@ function cloneVNode(vnode, extraProps, mergeRef = false) {
     ref: extraProps && extraProps.ref ? mergeRef && ref2 ? isArray$c(ref2) ? ref2.concat(normalizeRef(extraProps)) : [ref2, normalizeRef(extraProps)] : normalizeRef(extraProps) : ref2,
     scopeId: vnode.scopeId,
     slotScopeIds: vnode.slotScopeIds,
-    children: patchFlag === -1 && isArray$c(children) ? children.map(deepCloneVNode) : children,
+    children,
     target: vnode.target,
     targetAnchor: vnode.targetAnchor,
     staticCount: vnode.staticCount,
@@ -5971,13 +5033,6 @@ function cloneVNode(vnode, extraProps, mergeRef = false) {
     el: vnode.el,
     anchor: vnode.anchor
   };
-  return cloned;
-}
-function deepCloneVNode(vnode) {
-  const cloned = cloneVNode(vnode);
-  if (isArray$c(vnode.children)) {
-    cloned.children = vnode.children.map(deepCloneVNode);
-  }
   return cloned;
 }
 function createTextVNode(text = " ", flag = 0) {
@@ -6089,10 +5144,6 @@ function renderList(source, renderItem, cache, index) {
       ret[i2] = renderItem(source[i2], i2, void 0, cached && cached[i2]);
     }
   } else if (typeof source === "number") {
-    if (!Number.isInteger(source)) {
-      warn$1(`The v-for range expect an integer value but got ${source}.`);
-      return [];
-    }
     ret = new Array(source);
     for (let i2 = 0; i2 < source; i2++) {
       ret[i2] = renderItem(i2 + 1, i2, void 0, cached && cached[i2]);
@@ -6134,10 +5185,6 @@ function renderSlot(slots, name, props = {}, fallback, noSlotted) {
     return createVNode("slot", name === "default" ? null : { name }, fallback && fallback());
   }
   let slot = slots[name];
-  if (slot && slot.length > 1) {
-    warn$1(`SSR-optimized slot function detected in a non-SSR-optimized render function. You need to mark this component with $dynamic-slots in the parent template.`);
-    slot = () => [];
-  }
   if (slot && slot._c) {
     slot._d = false;
   }
@@ -6165,10 +5212,6 @@ function ensureValidVNode(vnodes) {
 }
 function toHandlers(obj) {
   const ret = {};
-  if (!isObject$p(obj)) {
-    warn$1(`v-on with no argument expects an object value.`);
-    return ret;
-  }
   for (const key in obj) {
     ret[toHandlerKey(key)] = obj[key];
   }
@@ -6185,10 +5228,10 @@ const publicPropertiesMap = extend(/* @__PURE__ */ Object.create(null), {
   $: (i2) => i2,
   $el: (i2) => i2.vnode.el,
   $data: (i2) => i2.data,
-  $props: (i2) => shallowReadonly(i2.props),
-  $attrs: (i2) => shallowReadonly(i2.attrs),
-  $slots: (i2) => shallowReadonly(i2.slots),
-  $refs: (i2) => shallowReadonly(i2.refs),
+  $props: (i2) => i2.props,
+  $attrs: (i2) => i2.attrs,
+  $slots: (i2) => i2.slots,
+  $refs: (i2) => i2.refs,
   $parent: (i2) => getPublicInstance(i2.parent),
   $root: (i2) => getPublicInstance(i2.root),
   $emit: (i2) => i2.emit,
@@ -6200,12 +5243,6 @@ const publicPropertiesMap = extend(/* @__PURE__ */ Object.create(null), {
 const PublicInstanceProxyHandlers = {
   get({ _: instance }, key) {
     const { ctx, setupState, data: data2, props, accessCache, type, appContext } = instance;
-    if (key === "__isVue") {
-      return true;
-    }
-    if (setupState !== EMPTY_OBJ && setupState.__isScriptSetup && hasOwn$k(setupState, key)) {
-      return setupState[key];
-    }
     let normalizedProps;
     if (key[0] !== "$") {
       const n2 = accessCache[key];
@@ -6241,7 +5278,6 @@ const PublicInstanceProxyHandlers = {
     if (publicGetter) {
       if (key === "$attrs") {
         track(instance, "get", key);
-        markAttrsAccessed();
       }
       return publicGetter(instance);
     } else if ((cssModule = type.__cssModules) && (cssModule = cssModule[key])) {
@@ -6253,13 +5289,8 @@ const PublicInstanceProxyHandlers = {
       {
         return globalProperties[key];
       }
-    } else if (currentRenderingInstance && (!isString(key) || key.indexOf("__v") !== 0)) {
-      if (data2 !== EMPTY_OBJ && (key[0] === "$" || key[0] === "_") && hasOwn$k(data2, key)) {
-        warn$1(`Property ${JSON.stringify(key)} must be accessed via $data because it starts with a reserved character ("$" or "_") and is not proxied on the render context.`);
-      } else if (instance === currentRenderingInstance) {
-        warn$1(`Property ${JSON.stringify(key)} was accessed during render but is not defined on instance.`);
-      }
-    }
+    } else
+      ;
   },
   set({ _: instance }, key, value) {
     const { data: data2, setupState, ctx } = instance;
@@ -6270,20 +5301,12 @@ const PublicInstanceProxyHandlers = {
       data2[key] = value;
       return true;
     } else if (hasOwn$k(instance.props, key)) {
-      warn$1(`Attempting to mutate prop "${key}". Props are readonly.`, instance);
       return false;
     }
     if (key[0] === "$" && key.slice(1) in instance) {
-      warn$1(`Attempting to mutate public property "${key}". Properties starting with $ are reserved and readonly.`, instance);
       return false;
     } else {
-      if (key in instance.appContext.config.globalProperties) {
-        Object.defineProperty(ctx, key, {
-          enumerable: true,
-          configurable: true,
-          value
-        });
-      } else {
+      {
         ctx[key] = value;
       }
     }
@@ -6302,12 +5325,6 @@ const PublicInstanceProxyHandlers = {
     return Reflect.defineProperty(target, key, descriptor);
   }
 };
-{
-  PublicInstanceProxyHandlers.ownKeys = (target) => {
-    warn$1(`Avoid app logic that relies on enumerating keys on a component instance. The keys will be empty in production mode to avoid performance overhead.`);
-    return Reflect.ownKeys(target);
-  };
-}
 const RuntimeCompiledPublicInstanceProxyHandlers = /* @__PURE__ */ extend({}, PublicInstanceProxyHandlers, {
   get(target, key) {
     if (key === Symbol.unscopables) {
@@ -6317,59 +5334,9 @@ const RuntimeCompiledPublicInstanceProxyHandlers = /* @__PURE__ */ extend({}, Pu
   },
   has(_, key) {
     const has2 = key[0] !== "_" && !isGloballyWhitelisted(key);
-    if (!has2 && PublicInstanceProxyHandlers.has(_, key)) {
-      warn$1(`Property ${JSON.stringify(key)} should not start with _ which is a reserved prefix for Vue internals.`);
-    }
     return has2;
   }
 });
-function createDevRenderContext(instance) {
-  const target = {};
-  Object.defineProperty(target, `_`, {
-    configurable: true,
-    enumerable: false,
-    get: () => instance
-  });
-  Object.keys(publicPropertiesMap).forEach((key) => {
-    Object.defineProperty(target, key, {
-      configurable: true,
-      enumerable: false,
-      get: () => publicPropertiesMap[key](instance),
-      set: NOOP
-    });
-  });
-  return target;
-}
-function exposePropsOnRenderContext(instance) {
-  const { ctx, propsOptions: [propsOptions] } = instance;
-  if (propsOptions) {
-    Object.keys(propsOptions).forEach((key) => {
-      Object.defineProperty(ctx, key, {
-        enumerable: true,
-        configurable: true,
-        get: () => instance.props[key],
-        set: NOOP
-      });
-    });
-  }
-}
-function exposeSetupStateOnRenderContext(instance) {
-  const { ctx, setupState } = instance;
-  Object.keys(toRaw(setupState)).forEach((key) => {
-    if (!setupState.__isScriptSetup) {
-      if (key[0] === "$" || key[0] === "_") {
-        warn$1(`setup() return property ${JSON.stringify(key)} should not start with "$" or "_" which are reserved prefixes for Vue internals.`);
-        return;
-      }
-      Object.defineProperty(ctx, key, {
-        enumerable: true,
-        configurable: true,
-        get: () => setupState[key],
-        set: NOOP
-      });
-    }
-  });
-}
 const emptyAppContext = createAppContext();
 let uid$1$1 = 0;
 function createComponentInstance(vnode, parent2, suspense) {
@@ -6434,7 +5401,7 @@ function createComponentInstance(vnode, parent2, suspense) {
     sp: null
   };
   {
-    instance.ctx = createDevRenderContext(instance);
+    instance.ctx = { _: instance };
   }
   instance.root = parent2 ? parent2.root : instance;
   instance.emit = emit$1.bind(null, instance);
@@ -6453,13 +5420,6 @@ const unsetCurrentInstance = () => {
   currentInstance && currentInstance.scope.off();
   currentInstance = null;
 };
-const isBuiltInTag = /* @__PURE__ */ makeMap("slot,component");
-function validateComponentName(name, config2) {
-  const appIsNativeTag = config2.isNativeTag || NO;
-  if (isBuiltInTag(name) || appIsNativeTag(name)) {
-    warn$1("Do not use built-in or reserved HTML elements as component id: " + name);
-  }
-}
 function isStatefulComponent(instance) {
   return instance.vnode.shapeFlag & 4;
 }
@@ -6476,37 +5436,14 @@ function setupComponent(instance, isSSR = false) {
 }
 function setupStatefulComponent(instance, isSSR) {
   const Component = instance.type;
-  {
-    if (Component.name) {
-      validateComponentName(Component.name, instance.appContext.config);
-    }
-    if (Component.components) {
-      const names = Object.keys(Component.components);
-      for (let i2 = 0; i2 < names.length; i2++) {
-        validateComponentName(names[i2], instance.appContext.config);
-      }
-    }
-    if (Component.directives) {
-      const names = Object.keys(Component.directives);
-      for (let i2 = 0; i2 < names.length; i2++) {
-        validateDirectiveName(names[i2]);
-      }
-    }
-    if (Component.compilerOptions && isRuntimeOnly()) {
-      warn$1(`"compilerOptions" is only supported when using a build of Vue that includes the runtime compiler. Since you are using a runtime-only build, the options should be passed via your build tool config instead.`);
-    }
-  }
   instance.accessCache = /* @__PURE__ */ Object.create(null);
   instance.proxy = markRaw(new Proxy(instance.ctx, PublicInstanceProxyHandlers));
-  {
-    exposePropsOnRenderContext(instance);
-  }
   const { setup } = Component;
   if (setup) {
     const setupContext = instance.setupContext = setup.length > 1 ? createSetupContext(instance) : null;
     setCurrentInstance(instance);
     pauseTracking();
-    const setupResult = callWithErrorHandling(setup, instance, 0, [shallowReadonly(instance.props), setupContext]);
+    const setupResult = callWithErrorHandling(setup, instance, 0, [instance.props, setupContext]);
     resetTracking();
     unsetCurrentInstance();
     if (isPromise$1(setupResult)) {
@@ -6535,19 +5472,9 @@ function handleSetupResult(instance, setupResult, isSSR) {
       instance.render = setupResult;
     }
   } else if (isObject$p(setupResult)) {
-    if (isVNode(setupResult)) {
-      warn$1(`setup() should not return VNodes directly - return a render function instead.`);
-    }
-    {
-      instance.devtoolsRawSetupState = setupResult;
-    }
     instance.setupState = proxyRefs(setupResult);
-    {
-      exposeSetupStateOnRenderContext(instance);
-    }
-  } else if (setupResult !== void 0) {
-    warn$1(`setup() should return an object. Received: ${setupResult === null ? "null" : typeof setupResult}`);
-  }
+  } else
+    ;
   finishComponentSetup(instance, isSSR);
 }
 let compile$1;
@@ -6567,9 +5494,6 @@ function finishComponentSetup(instance, isSSR, skipOptions) {
     if (!isSSR && compile$1 && !Component.render) {
       const template = Component.template;
       if (template) {
-        {
-          startMeasure(instance, `compile`);
-        }
         const { isCustomElement, compilerOptions } = instance.appContext.config;
         const { delimiters, compilerOptions: componentCompilerOptions } = Component;
         const finalCompilerOptions = extend(extend({
@@ -6577,9 +5501,6 @@ function finishComponentSetup(instance, isSSR, skipOptions) {
           delimiters
         }, compilerOptions), componentCompilerOptions);
         Component.render = compile$1(template, finalCompilerOptions);
-        {
-          endMeasure(instance, `compile`);
-        }
       }
     }
     instance.render = Component.render || NOOP;
@@ -6594,52 +5515,29 @@ function finishComponentSetup(instance, isSSR, skipOptions) {
     resetTracking();
     unsetCurrentInstance();
   }
-  if (!Component.render && instance.render === NOOP && !isSSR) {
-    if (!compile$1 && Component.template) {
-      warn$1(`Component provided template option but runtime compilation is not supported in this build of Vue. Configure your bundler to alias "vue" to "vue/dist/vue.esm-bundler.js".`);
-    } else {
-      warn$1(`Component is missing template or render function.`);
-    }
-  }
 }
 function createAttrsProxy(instance) {
   return new Proxy(instance.attrs, {
     get(target, key) {
-      markAttrsAccessed();
       track(instance, "get", "$attrs");
       return target[key];
-    },
-    set() {
-      warn$1(`setupContext.attrs is readonly.`);
-      return false;
-    },
-    deleteProperty() {
-      warn$1(`setupContext.attrs is readonly.`);
-      return false;
     }
   });
 }
 function createSetupContext(instance) {
   const expose = (exposed) => {
-    if (instance.exposed) {
-      warn$1(`expose() should be called only once per setup().`);
-    }
     instance.exposed = exposed || {};
   };
   let attrs;
   {
-    return Object.freeze({
+    return {
       get attrs() {
         return attrs || (attrs = createAttrsProxy(instance));
       },
-      get slots() {
-        return shallowReadonly(instance.slots);
-      },
-      get emit() {
-        return (event, ...args) => instance.emit(event, ...args);
-      },
+      slots: instance.slots,
+      emit: instance.emit,
       expose
-    });
+    };
   }
 }
 function getExposeProxy(instance) {
@@ -6686,28 +5584,15 @@ function isClassComponent(value) {
 const computed = (getterOrOptions, debugOptions) => {
   return computed$1(getterOrOptions, debugOptions, isInSSRComponentSetup);
 };
-const warnRuntimeUsage = (method2) => warn$1(`${method2}() is a compiler-hint helper that is only usable inside <script setup> of a single file component. Its arguments should be compiled away and passing it at runtime has no effect.`);
 function defineProps() {
-  {
-    warnRuntimeUsage(`defineProps`);
-  }
   return null;
 }
 function defineEmits() {
-  {
-    warnRuntimeUsage(`defineEmits`);
-  }
   return null;
 }
 function defineExpose(exposed) {
-  {
-    warnRuntimeUsage(`defineExpose`);
-  }
 }
 function withDefaults(props, defaults) {
-  {
-    warnRuntimeUsage(`withDefaults`);
-  }
   return null;
 }
 function useSlots() {
@@ -6718,9 +5603,6 @@ function useAttrs() {
 }
 function getContext() {
   const i2 = getCurrentInstance();
-  if (!i2) {
-    warn$1(`useContext() called without active instance.`);
-  }
   return i2.setupContext || (i2.setupContext = createSetupContext(i2));
 }
 function mergeDefaults(raw, defaults) {
@@ -6735,9 +5617,8 @@ function mergeDefaults(raw, defaults) {
       }
     } else if (opt === null) {
       props[key] = { default: defaults[key] };
-    } else {
-      warn$1(`props default key "${key}" has no corresponding declaration.`);
-    }
+    } else
+      ;
   }
   return props;
 }
@@ -6755,9 +5636,6 @@ function createPropsRestProxy(props, excludedKeys) {
 }
 function withAsyncContext(getAwaitable) {
   const ctx = getCurrentInstance();
-  if (!ctx) {
-    warn$1(`withAsyncContext called without active current instance. This is likely a bug.`);
-  }
   let awaitable = getAwaitable();
   unsetCurrentInstance();
   if (isPromise$1(awaitable)) {
@@ -6788,192 +5666,19 @@ function h(type, propsOrChildren, children) {
     return createVNode(type, propsOrChildren, children);
   }
 }
-const ssrContextKey = Symbol(`ssrContext`);
+const ssrContextKey = Symbol(``);
 const useSSRContext = () => {
   {
     const ctx = inject(ssrContextKey);
     if (!ctx) {
-      warn$1(`Server rendering context not provided. Make sure to only call useSSRContext() conditionally in the server build.`);
+      warn(`Server rendering context not provided. Make sure to only call useSSRContext() conditionally in the server build.`);
     }
     return ctx;
   }
 };
-function isShallow(value) {
-  return !!(value && value["__v_isShallow"]);
-}
 function initCustomFormatter() {
-  if (typeof window === "undefined") {
+  {
     return;
-  }
-  const vueStyle = { style: "color:#3ba776" };
-  const numberStyle = { style: "color:#0b1bc9" };
-  const stringStyle = { style: "color:#b62e24" };
-  const keywordStyle = { style: "color:#9d288c" };
-  const formatter = {
-    header(obj) {
-      if (!isObject$p(obj)) {
-        return null;
-      }
-      if (obj.__isVue) {
-        return ["div", vueStyle, `VueInstance`];
-      } else if (isRef(obj)) {
-        return [
-          "div",
-          {},
-          ["span", vueStyle, genRefFlag(obj)],
-          "<",
-          formatValue(obj.value),
-          `>`
-        ];
-      } else if (isReactive(obj)) {
-        return [
-          "div",
-          {},
-          ["span", vueStyle, isShallow(obj) ? "ShallowReactive" : "Reactive"],
-          "<",
-          formatValue(obj),
-          `>${isReadonly(obj) ? ` (readonly)` : ``}`
-        ];
-      } else if (isReadonly(obj)) {
-        return [
-          "div",
-          {},
-          ["span", vueStyle, isShallow(obj) ? "ShallowReadonly" : "Readonly"],
-          "<",
-          formatValue(obj),
-          ">"
-        ];
-      }
-      return null;
-    },
-    hasBody(obj) {
-      return obj && obj.__isVue;
-    },
-    body(obj) {
-      if (obj && obj.__isVue) {
-        return [
-          "div",
-          {},
-          ...formatInstance(obj.$)
-        ];
-      }
-    }
-  };
-  function formatInstance(instance) {
-    const blocks = [];
-    if (instance.type.props && instance.props) {
-      blocks.push(createInstanceBlock("props", toRaw(instance.props)));
-    }
-    if (instance.setupState !== EMPTY_OBJ) {
-      blocks.push(createInstanceBlock("setup", instance.setupState));
-    }
-    if (instance.data !== EMPTY_OBJ) {
-      blocks.push(createInstanceBlock("data", toRaw(instance.data)));
-    }
-    const computed2 = extractKeys(instance, "computed");
-    if (computed2) {
-      blocks.push(createInstanceBlock("computed", computed2));
-    }
-    const injected = extractKeys(instance, "inject");
-    if (injected) {
-      blocks.push(createInstanceBlock("injected", injected));
-    }
-    blocks.push([
-      "div",
-      {},
-      [
-        "span",
-        {
-          style: keywordStyle.style + ";opacity:0.66"
-        },
-        "$ (internal): "
-      ],
-      ["object", { object: instance }]
-    ]);
-    return blocks;
-  }
-  function createInstanceBlock(type, target) {
-    target = extend({}, target);
-    if (!Object.keys(target).length) {
-      return ["span", {}];
-    }
-    return [
-      "div",
-      { style: "line-height:1.25em;margin-bottom:0.6em" },
-      [
-        "div",
-        {
-          style: "color:#476582"
-        },
-        type
-      ],
-      [
-        "div",
-        {
-          style: "padding-left:1.25em"
-        },
-        ...Object.keys(target).map((key) => {
-          return [
-            "div",
-            {},
-            ["span", keywordStyle, key + ": "],
-            formatValue(target[key], false)
-          ];
-        })
-      ]
-    ];
-  }
-  function formatValue(v, asRaw = true) {
-    if (typeof v === "number") {
-      return ["span", numberStyle, v];
-    } else if (typeof v === "string") {
-      return ["span", stringStyle, JSON.stringify(v)];
-    } else if (typeof v === "boolean") {
-      return ["span", keywordStyle, v];
-    } else if (isObject$p(v)) {
-      return ["object", { object: asRaw ? toRaw(v) : v }];
-    } else {
-      return ["span", stringStyle, String(v)];
-    }
-  }
-  function extractKeys(instance, type) {
-    const Comp = instance.type;
-    if (isFunction(Comp)) {
-      return;
-    }
-    const extracted = {};
-    for (const key in instance.ctx) {
-      if (isKeyOfType(Comp, key, type)) {
-        extracted[key] = instance.ctx[key];
-      }
-    }
-    return extracted;
-  }
-  function isKeyOfType(Comp, key, type) {
-    const opts = Comp[type];
-    if (isArray$c(opts) && opts.includes(key) || isObject$p(opts) && key in opts) {
-      return true;
-    }
-    if (Comp.extends && isKeyOfType(Comp.extends, key, type)) {
-      return true;
-    }
-    if (Comp.mixins && Comp.mixins.some((m) => isKeyOfType(m, key, type))) {
-      return true;
-    }
-  }
-  function genRefFlag(v) {
-    if (isShallow(v)) {
-      return `ShallowRef`;
-    }
-    if (v.effect) {
-      return `ComputedRef`;
-    }
-    return `Ref`;
-  }
-  if (window.devtoolsFormatters) {
-    window.devtoolsFormatters.push(formatter);
-  } else {
-    window.devtoolsFormatters = [formatter];
   }
 }
 function withMemo(memo, render2, cache, index) {
@@ -7166,11 +5871,11 @@ function patchAttr(el, key, value, isSVG, instance) {
       el.setAttributeNS(xlinkNS, key, value);
     }
   } else {
-    const isBoolean2 = isSpecialBooleanAttr(key);
-    if (value == null || isBoolean2 && !includeBooleanAttr(value)) {
+    const isBoolean = isSpecialBooleanAttr(key);
+    if (value == null || isBoolean && !includeBooleanAttr(value)) {
       el.removeAttribute(key);
     } else {
-      el.setAttribute(key, isBoolean2 ? "" : value);
+      el.setAttribute(key, isBoolean ? "" : value);
     }
   }
 }
@@ -7214,9 +5919,6 @@ function patchDOMProp(el, key, value, prevChildren, parentComponent, parentSuspe
   try {
     el[key] = value;
   } catch (e2) {
-    {
-      warn$1(`Failed setting prop "${key}" on <${el.tagName.toLowerCase()}>: value ${value} is invalid.`, e2);
-    }
   }
 }
 let _getNow = Date.now;
@@ -7367,9 +6069,6 @@ class VueElement extends BaseClass {
     if (this.shadowRoot && hydrate2) {
       hydrate2(this._createVNode(), this.shadowRoot);
     } else {
-      if (this.shadowRoot) {
-        warn$1(`Custom element has pre-rendered declarative shadow root but is not defined as hydratable. Use \`defineSSRCustomElement\`.`);
-      }
       this.attachShadow({ mode: "open" });
     }
   }
@@ -7477,19 +6176,6 @@ class VueElement extends BaseClass {
       vnode.ce = (instance) => {
         this._instance = instance;
         instance.isCE = true;
-        {
-          instance.ceReload = (newStyles) => {
-            if (this._styles) {
-              this._styles.forEach((s) => this.shadowRoot.removeChild(s));
-              this._styles.length = 0;
-            }
-            this._applyStyles(newStyles);
-            if (!this._def.__asyncLoader) {
-              this._instance = null;
-              this._update();
-            }
-          };
-        }
         instance.emit = (event, ...args) => {
           this.dispatchEvent(new CustomEvent(event, {
             detail: args
@@ -7512,9 +6198,6 @@ class VueElement extends BaseClass {
         const s = document.createElement("style");
         s.textContent = css;
         this.shadowRoot.appendChild(s);
-        {
-          (this._styles || (this._styles = [])).push(s);
-        }
       });
     }
   }
@@ -7523,17 +6206,14 @@ function useCssModule(name = "$style") {
   {
     const instance = getCurrentInstance();
     if (!instance) {
-      warn$1(`useCssModule must be called inside setup()`);
       return EMPTY_OBJ;
     }
     const modules = instance.type.__cssModules;
     if (!modules) {
-      warn$1(`Current instance does not have CSS modules injected.`);
       return EMPTY_OBJ;
     }
     const mod = modules[name];
     if (!mod) {
-      warn$1(`Current instance does not have CSS module named "${name}".`);
       return EMPTY_OBJ;
     }
     return mod;
@@ -7542,7 +6222,6 @@ function useCssModule(name = "$style") {
 function useCssVars(getter) {
   const instance = getCurrentInstance();
   if (!instance) {
-    warn$1(`useCssVars is called without current active component instance.`);
     return;
   }
   const setVars = () => setVarsOnVNode(instance.subTree, getter(instance.proxy));
@@ -7713,15 +6392,7 @@ function normalizeDuration(duration) {
 }
 function NumberOf(val) {
   const res = toNumber(val);
-  validateDuration(res);
   return res;
-}
-function validateDuration(val) {
-  if (typeof val !== "number") {
-    warn$1(`<transition> explicit duration is not a valid number - got ${JSON.stringify(val)}.`);
-  } else if (isNaN(val)) {
-    warn$1(`<transition> explicit duration is NaN - the duration expression might be incorrect.`);
-  }
 }
 function addTransitionClass(el, cls) {
   cls.split(/\s+/).forEach((c) => c && el.classList.add(c));
@@ -7877,8 +6548,6 @@ const TransitionGroupImpl = {
         const child = children[i2];
         if (child.key != null) {
           setTransitionHooks(child, resolveTransitionHooks(child, cssTransitionProps, state, instance));
-        } else {
-          warn$1(`<TransitionGroup> children must be keyed.`);
         }
       }
       if (prevChildren) {
@@ -8087,7 +6756,6 @@ const vModelSelect = {
 function setSelected(el, value) {
   const isMultiple = el.multiple;
   if (isMultiple && !isArray$c(value) && !isSet(value)) {
-    warn$1(`<select multiple v-model> expects an Array or Set value for its binding, but got ${Object.prototype.toString.call(value).slice(8, -1)}.`);
     return;
   }
   for (let i2 = 0, l = el.options.length; i2 < l; i2++) {
@@ -8285,10 +6953,6 @@ const hydrate = (...args) => {
 };
 const createApp = (...args) => {
   const app = ensureRenderer().createApp(...args);
-  {
-    injectNativeTagCheck(app);
-    injectCompilerOptionsCheck(app);
-  }
   const { mount } = app;
   app.mount = (containerOrSelector) => {
     const container = normalizeContainer(containerOrSelector);
@@ -8310,10 +6974,6 @@ const createApp = (...args) => {
 };
 const createSSRApp = (...args) => {
   const app = ensureHydrationRenderer().createApp(...args);
-  {
-    injectNativeTagCheck(app);
-    injectCompilerOptionsCheck(app);
-  }
   const { mount } = app;
   app.mount = (containerOrSelector) => {
     const container = normalizeContainer(containerOrSelector);
@@ -8323,49 +6983,10 @@ const createSSRApp = (...args) => {
   };
   return app;
 };
-function injectNativeTagCheck(app) {
-  Object.defineProperty(app.config, "isNativeTag", {
-    value: (tag) => isHTMLTag(tag) || isSVGTag(tag),
-    writable: false
-  });
-}
-function injectCompilerOptionsCheck(app) {
-  if (isRuntimeOnly()) {
-    const isCustomElement = app.config.isCustomElement;
-    Object.defineProperty(app.config, "isCustomElement", {
-      get() {
-        return isCustomElement;
-      },
-      set() {
-        warn$1(`The \`isCustomElement\` config option is deprecated. Use \`compilerOptions.isCustomElement\` instead.`);
-      }
-    });
-    const compilerOptions = app.config.compilerOptions;
-    const msg = `The \`compilerOptions\` config option is only respected when using a build of Vue.js that includes the runtime compiler (aka "full build"). Since you are using the runtime-only build, \`compilerOptions\` must be passed to \`@vue/compiler-dom\` in the build setup instead.
-- For vue-loader: pass it via vue-loader's \`compilerOptions\` loader option.
-- For vue-cli: see https://cli.vuejs.org/guide/webpack.html#modifying-options-of-a-loader
-- For vite: pass it via @vitejs/plugin-vue options. See https://github.com/vitejs/vite/tree/main/packages/plugin-vue#example-for-passing-options-to-vuecompiler-dom`;
-    Object.defineProperty(app.config, "compilerOptions", {
-      get() {
-        warn$1(msg);
-        return compilerOptions;
-      },
-      set() {
-        warn$1(msg);
-      }
-    });
-  }
-}
 function normalizeContainer(container) {
   if (isString(container)) {
     const res = document.querySelector(container);
-    if (!res) {
-      warn$1(`Failed to mount app: mount target selector "${container}" returned null.`);
-    }
     return res;
-  }
-  if (window.ShadowRoot && container instanceof window.ShadowRoot && container.mode === "closed") {
-    warn$1(`mounting on a ShadowRoot with \`{mode: "closed"}\` may lead to unpredictable bugs`);
   }
   return container;
 }
@@ -8377,18 +6998,7 @@ const initDirectivesForSSR = () => {
     initVShowForSSR();
   }
 };
-function initDev() {
-  {
-    initCustomFormatter();
-  }
-}
-{
-  initDev();
-}
 const compile = () => {
-  {
-    warn$1(`Runtime compilation is not supported in this build of Vue. Configure your bundler to alias "vue" to "vue/dist/vue.esm-bundler.js".`);
-  }
 };
 var vue_runtime_esmBundler = /* @__PURE__ */ Object.freeze({
   __proto__: null,
@@ -8404,7 +7014,7 @@ var vue_runtime_esmBundler = /* @__PURE__ */ Object.freeze({
   isReactive,
   isReadonly,
   isRef,
-  isShallow: isShallow$1,
+  isShallow,
   markRaw,
   onScopeDispose,
   proxyRefs,
@@ -8509,7 +7119,7 @@ var vue_runtime_esmBundler = /* @__PURE__ */ Object.freeze({
   useSlots,
   useTransitionState,
   version: version$1,
-  warn: warn$1,
+  warn,
   watch,
   watchEffect,
   watchPostEffect,
@@ -27608,7 +26218,7 @@ function _getMaxListeners(that) {
 EventEmitter.prototype.getMaxListeners = function getMaxListeners() {
   return _getMaxListeners(this);
 };
-EventEmitter.prototype.emit = function emit2(type) {
+EventEmitter.prototype.emit = function emit(type) {
   var args = [];
   for (var i2 = 1; i2 < arguments.length; i2++)
     args.push(arguments[i2]);
@@ -29174,12 +27784,12 @@ function setupDevtoolsPlugin(pluginDescriptor, setupFn) {
   * @license MIT
   */
 const hasSymbol = typeof Symbol === "function" && typeof Symbol.toStringTag === "symbol";
-const PolySymbol = (name) => hasSymbol ? Symbol("[vue-router]: " + name) : "[vue-router]: " + name;
-const matchedRouteKey = /* @__PURE__ */ PolySymbol("router view location matched");
-const viewDepthKey = /* @__PURE__ */ PolySymbol("router view depth");
-const routerKey = /* @__PURE__ */ PolySymbol("router");
-const routeLocationKey = /* @__PURE__ */ PolySymbol("route location");
-const routerViewLocationKey = /* @__PURE__ */ PolySymbol("router view location");
+const PolySymbol = (name) => hasSymbol ? Symbol(name) : "_vr_" + name;
+const matchedRouteKey = /* @__PURE__ */ PolySymbol("rvlm");
+const viewDepthKey = /* @__PURE__ */ PolySymbol("rvd");
+const routerKey = /* @__PURE__ */ PolySymbol("r");
+const routeLocationKey = /* @__PURE__ */ PolySymbol("rl");
+const routerViewLocationKey = /* @__PURE__ */ PolySymbol("rvl");
 const isBrowser = typeof window !== "undefined";
 function isESModule(obj) {
   return obj.__esModule || hasSymbol && obj[Symbol.toStringTag] === "Module";
@@ -29195,10 +27805,6 @@ function applyToParams(fn, params) {
 }
 const noop = () => {
 };
-function warn(msg) {
-  const args = Array.from(arguments).slice(1);
-  console.warn.apply(console, ["[Vue Router warn]: " + msg].concat(args));
-}
 const TRAILING_SLASH_RE = /\/$/;
 const removeTrailingSlash = (path2) => path2.replace(TRAILING_SLASH_RE, "");
 function parseURL(parseQuery2, location2, currentLocation = "/") {
@@ -29257,10 +27863,6 @@ function isEquivalentArray(a, b) {
 function resolveRelativePath(to, from4) {
   if (to.startsWith("/"))
     return to;
-  if (!from4.startsWith("/")) {
-    warn(`Cannot resolve a relative location without an absolute path. Trying to resolve "${to}" from "${from4}". It should look like "/${from4}".`);
-    return to;
-  }
   if (!to)
     return from4;
   const fromSegments = from4.split("/");
@@ -29326,23 +27928,8 @@ function scrollToPosition(position) {
   if ("el" in position) {
     const positionEl = position.el;
     const isIdSelector = typeof positionEl === "string" && positionEl.startsWith("#");
-    if (typeof position.el === "string") {
-      if (!isIdSelector || !document.getElementById(position.el.slice(1))) {
-        try {
-          const foundEl = document.querySelector(position.el);
-          if (isIdSelector && foundEl) {
-            warn(`The selector "${position.el}" should be passed as "el: document.querySelector('${position.el}')" because it starts with "#".`);
-            return;
-          }
-        } catch (err) {
-          warn(`The selector "${position.el}" is invalid. If you are using an id selector, make sure to escape it. You can find more information about escaping characters in selectors at https://mathiasbynens.be/notes/css-escapes or use CSS.escape (https://developer.mozilla.org/en-US/docs/Web/API/CSS/escape).`);
-          return;
-        }
-      }
-    }
     const el = typeof positionEl === "string" ? isIdSelector ? document.getElementById(positionEl.slice(1)) : document.querySelector(positionEl) : positionEl;
     if (!el) {
-      warn(`Couldn't find element using selector "${position.el}" returned by scrollBehavior.`);
       return;
     }
     scrollToOptions = getElementPosition(el, position);
@@ -29478,7 +28065,7 @@ function useHistoryStateNavigation(base) {
       historyState.value = state;
     } catch (err) {
       {
-        warn("Error with push/replace State", err);
+        console.error(err);
       }
       location2[replace3 ? "replace" : "assign"](url);
     }
@@ -29493,13 +28080,6 @@ function useHistoryStateNavigation(base) {
       forward: to,
       scroll: computeScrollPosition()
     });
-    if (!history2.state) {
-      warn(`history.state seems to have been manually replaced without preserving the necessary values. Make sure to preserve existing history state if you are manually calling history.replaceState:
-
-history.replaceState(history.state, '', url)
-
-You can find more information at https://next.router.vuejs.org/guide/migration/#usage-of-history-state.`);
-    }
     changeLocation(currentState.current, currentState, true);
     const state = assign2({}, buildState(currentLocation.value, to, null), { position: currentState.position + 1 }, data2);
     changeLocation(to, state, false);
@@ -29541,10 +28121,6 @@ function createWebHashHistory(base) {
   base = location.host ? base || location.pathname + location.search : "";
   if (!base.includes("#"))
     base += "#";
-  if (!base.endsWith("#/") && !base.endsWith("#")) {
-    warn(`A hash base must end with a "#":
-"${base}" should be "${base.replace(/#.*$/, "#")}".`);
-  }
   return createWebHistory(base);
 }
 function isRouteLocation(route) {
@@ -29564,34 +28140,16 @@ const START_LOCATION_NORMALIZED = {
   meta: {},
   redirectedFrom: void 0
 };
-const NavigationFailureSymbol = /* @__PURE__ */ PolySymbol("navigation failure");
+const NavigationFailureSymbol = /* @__PURE__ */ PolySymbol("nf");
 var NavigationFailureType;
 (function(NavigationFailureType2) {
   NavigationFailureType2[NavigationFailureType2["aborted"] = 4] = "aborted";
   NavigationFailureType2[NavigationFailureType2["cancelled"] = 8] = "cancelled";
   NavigationFailureType2[NavigationFailureType2["duplicated"] = 16] = "duplicated";
 })(NavigationFailureType || (NavigationFailureType = {}));
-const ErrorTypeMessages = {
-  [1]({ location: location2, currentLocation }) {
-    return `No match for
- ${JSON.stringify(location2)}${currentLocation ? "\nwhile being at\n" + JSON.stringify(currentLocation) : ""}`;
-  },
-  [2]({ from: from4, to }) {
-    return `Redirected from "${from4.fullPath}" to "${stringifyRoute(to)}" via a navigation guard.`;
-  },
-  [4]({ from: from4, to }) {
-    return `Navigation aborted from "${from4.fullPath}" to "${to.fullPath}" via a navigation guard.`;
-  },
-  [8]({ from: from4, to }) {
-    return `Navigation cancelled from "${from4.fullPath}" to "${to.fullPath}" with a new navigation.`;
-  },
-  [16]({ from: from4, to }) {
-    return `Avoided redundant navigation to current location: "${from4.fullPath}".`;
-  }
-};
 function createRouterError(type, params) {
   {
-    return assign2(new Error(ErrorTypeMessages[type](params)), {
+    return assign2(new Error(), {
       type,
       [NavigationFailureSymbol]: true
     }, params);
@@ -29599,19 +28157,6 @@ function createRouterError(type, params) {
 }
 function isNavigationFailure(error, type) {
   return error instanceof Error && NavigationFailureSymbol in error && (type == null || !!(error.type & type));
-}
-const propertiesToLog = ["params", "query", "hash"];
-function stringifyRoute(to) {
-  if (typeof to === "string")
-    return to;
-  if ("path" in to)
-    return to.path;
-  const location2 = {};
-  for (const key of propertiesToLog) {
-    if (key in to)
-      location2[key] = to[key];
-  }
-  return JSON.stringify(location2, null, 2);
 }
 const BASE_PARAM_PATTERN = "[^/]+?";
 const BASE_PATH_PARSER_OPTIONS = {
@@ -29774,7 +28319,7 @@ function tokenizePath(path2) {
   if (path2 === "/")
     return [[ROOT_TOKEN]];
   if (!path2.startsWith("/")) {
-    throw new Error(`Route paths should start with a "/": "${path2}" should be "/${path2}".`);
+    throw new Error(`Invalid path "${path2}"`);
   }
   function crash(message) {
     throw new Error(`ERR (${state})/"${buffer2}": ${message}`);
@@ -29885,14 +28430,6 @@ function tokenizePath(path2) {
 }
 function createRouteRecordMatcher(record, parent2, options) {
   const parser = tokensToParser(tokenizePath(record.path), options);
-  {
-    const existingKeys = /* @__PURE__ */ new Set();
-    for (const key of parser.keys) {
-      if (existingKeys.has(key.name))
-        warn(`Found duplicated params with name "${key.name}" for path "${record.path}". Only the last one will be available on "$route.params".`);
-      existingKeys.add(key.name);
-    }
-  }
   const matcher = assign2(parser, {
     record,
     parent: parent2,
@@ -29939,17 +28476,9 @@ function createRouterMatcher(routes, globalOptions) {
         const connectingSlash = parentPath[parentPath.length - 1] === "/" ? "" : "/";
         normalizedRecord.path = parent2.record.path + (path2 && connectingSlash + path2);
       }
-      if (normalizedRecord.path === "*") {
-        throw new Error('Catch all routes ("*") must now be defined using a param with a custom regexp.\nSee more at https://next.router.vuejs.org/guide/migration/#removed-star-or-catch-all-routes.');
-      }
       matcher = createRouteRecordMatcher(normalizedRecord, parent2, options);
-      if (parent2 && path2[0] === "/")
-        checkMissingParamsInAbsolutePath(matcher, parent2);
       if (originalRecord) {
         originalRecord.alias.push(matcher);
-        {
-          checkSameParams(originalRecord, matcher);
-        }
       } else {
         originalMatcher = originalMatcher || matcher;
         if (originalMatcher !== matcher)
@@ -30017,9 +28546,6 @@ function createRouterMatcher(routes, globalOptions) {
       path2 = matcher.stringify(params);
     } else if ("path" in location2) {
       path2 = location2.path;
-      if (!path2.startsWith("/")) {
-        warn(`The Matcher cannot resolve relative paths but received "${path2}". Unless you directly called \`matcher.resolve("${path2}")\`, this is probably a bug in vue-router. Please open an issue at https://new-issue.vuejs.org/?repo=vuejs/vue-router-next.`);
-      }
       matcher = matchers.find((m) => m.re.test(path2));
       if (matcher) {
         params = matcher.parse(path2);
@@ -30107,25 +28633,6 @@ function mergeOptions(defaults, partialOptions) {
   }
   return options;
 }
-function isSameParam(a, b) {
-  return a.name === b.name && a.optional === b.optional && a.repeatable === b.repeatable;
-}
-function checkSameParams(a, b) {
-  for (const key of a.keys) {
-    if (!key.optional && !b.keys.find(isSameParam.bind(null, key)))
-      return warn(`Alias "${b.record.path}" and the original record: "${a.record.path}" should have the exact same param named "${key.name}"`);
-  }
-  for (const key of b.keys) {
-    if (!key.optional && !a.keys.find(isSameParam.bind(null, key)))
-      return warn(`Alias "${b.record.path}" and the original record: "${a.record.path}" should have the exact same param named "${key.name}"`);
-  }
-}
-function checkMissingParamsInAbsolutePath(record, parent2) {
-  for (const key of parent2.keys) {
-    if (!record.keys.find(isSameParam.bind(null, key)))
-      return warn(`Absolute path "${record.record.path}" should have the exact same param named "${key.name}" as its parent "${parent2.record.path}".`);
-  }
-}
 const HASH_RE = /#/g;
 const AMPERSAND_RE = /&/g;
 const SLASH_RE = /\//g;
@@ -30162,7 +28669,6 @@ function decode(text) {
   try {
     return decodeURIComponent("" + text);
   } catch (err) {
-    warn(`Error decoding "${text}". Using original value`);
   }
   return "" + text;
 }
@@ -30262,61 +28768,18 @@ function guardToPromiseFn(guard, to, from4, record, name) {
         resolve3();
       }
     };
-    const guardReturn = guard.call(record && record.instances[name], to, from4, canOnlyBeCalledOnce(next2, to, from4));
+    const guardReturn = guard.call(record && record.instances[name], to, from4, next2);
     let guardCall = Promise.resolve(guardReturn);
     if (guard.length < 3)
       guardCall = guardCall.then(next2);
-    if (guard.length > 2) {
-      const message = `The "next" callback was never called inside of ${guard.name ? '"' + guard.name + '"' : ""}:
-${guard.toString()}
-. If you are returning a value instead of calling "next", make sure to remove the "next" parameter from your function.`;
-      if (typeof guardReturn === "object" && "then" in guardReturn) {
-        guardCall = guardCall.then((resolvedValue) => {
-          if (!next2._called) {
-            warn(message);
-            return Promise.reject(new Error("Invalid navigation guard"));
-          }
-          return resolvedValue;
-        });
-      } else if (guardReturn !== void 0) {
-        if (!next2._called) {
-          warn(message);
-          reject2(new Error("Invalid navigation guard"));
-          return;
-        }
-      }
-    }
     guardCall.catch((err) => reject2(err));
   });
-}
-function canOnlyBeCalledOnce(next2, to, from4) {
-  let called = 0;
-  return function() {
-    if (called++ === 1)
-      warn(`The "next" callback was called more than once in one navigation guard when going from "${from4.fullPath}" to "${to.fullPath}". It should be called exactly one time in each navigation guard. This will fail in production.`);
-    next2._called = true;
-    if (called === 1)
-      next2.apply(null, arguments);
-  };
 }
 function extractComponentsGuards(matched, guardType, to, from4) {
   const guards = [];
   for (const record of matched) {
     for (const name in record.components) {
       let rawComponent = record.components[name];
-      {
-        if (!rawComponent || typeof rawComponent !== "object" && typeof rawComponent !== "function") {
-          warn(`Component "${name}" in record with path "${record.path}" is not a valid component. Received "${String(rawComponent)}".`);
-          throw new Error("Invalid route component");
-        } else if ("then" in rawComponent) {
-          warn(`Component "${name}" in record with path "${record.path}" is a Promise instead of a function that returns a Promise. Did you write "import('./MyPage.vue')" instead of "() => import('./MyPage.vue')" ? This will break in production if not fixed.`);
-          const promise2 = rawComponent;
-          rawComponent = () => promise2;
-        } else if (rawComponent.__asyncLoader && !rawComponent.__warnedDefineAsync) {
-          rawComponent.__warnedDefineAsync = true;
-          warn(`Component "${name}" in record with path "${record.path}" is defined using "defineAsyncComponent()". Write "() => import('./MyPage.vue')" instead of "defineAsyncComponent(() => import('./MyPage.vue'))".`);
-        }
-      }
       if (guardType !== "beforeRouteEnter" && !record.instances[name])
         continue;
       if (isRouteComponent(rawComponent)) {
@@ -30325,10 +28788,6 @@ function extractComponentsGuards(matched, guardType, to, from4) {
         guard && guards.push(guardToPromiseFn(guard, to, from4, record, name));
       } else {
         let componentPromise = rawComponent();
-        if (!("catch" in componentPromise)) {
-          warn(`Component "${name}" in record with path "${record.path}" is a function that does not return a Promise. If you were passing a functional component, make sure to add a "displayName" to the component. This will break in production if not fixed.`);
-          componentPromise = Promise.resolve(componentPromise);
-        }
         guards.push(() => componentPromise.then((resolved) => {
           if (!resolved)
             return Promise.reject(new Error(`Couldn't resolve component "${name}" at "${record.path}"`));
@@ -30370,23 +28829,6 @@ function useLink(props) {
       return router[unref(props.replace) ? "replace" : "push"](unref(props.to)).catch(noop);
     }
     return Promise.resolve();
-  }
-  if (isBrowser) {
-    const instance = getCurrentInstance();
-    if (instance) {
-      const linkContextDevtools = {
-        route: route.value,
-        isActive: isActive.value,
-        isExactActive: isExactActive.value
-      };
-      instance.__vrl_devtools = instance.__vrl_devtools || [];
-      instance.__vrl_devtools.push(linkContextDevtools);
-      watchEffect(() => {
-        linkContextDevtools.route = route.value;
-        linkContextDevtools.isActive = isActive.value;
-        linkContextDevtools.isExactActive = isExactActive.value;
-      }, { flush: "post" });
-    }
   }
   return {
     route,
@@ -30477,7 +28919,6 @@ const RouterViewImpl = /* @__PURE__ */ defineComponent({
     route: Object
   },
   setup(props, { attrs, slots }) {
-    warnDeprecatedUsage();
     const injectedRoute = inject(routerViewLocationKey);
     const routeToDisplay = computed(() => props.route || injectedRoute.value);
     const depth = inject(viewDepthKey, 0);
@@ -30521,18 +28962,6 @@ const RouterViewImpl = /* @__PURE__ */ defineComponent({
         onVnodeUnmounted,
         ref: viewRef
       }));
-      if (isBrowser && component.ref) {
-        const info = {
-          depth,
-          name: matchedRoute.name,
-          path: matchedRoute.path,
-          meta: matchedRoute.meta
-        };
-        const internalInstances = Array.isArray(component.ref) ? component.ref.map((r2) => r2.i) : [component.ref.i];
-        internalInstances.forEach((instance) => {
-          instance.__vrv_devtools = info;
-        });
-      }
       return normalizeSlot(slots.default, { Component: component, route }) || component;
     };
   }
@@ -30544,399 +28973,11 @@ function normalizeSlot(slot, data2) {
   return slotContent.length === 1 ? slotContent[0] : slotContent;
 }
 const RouterView = RouterViewImpl;
-function warnDeprecatedUsage() {
-  const instance = getCurrentInstance();
-  const parentName = instance.parent && instance.parent.type.name;
-  if (parentName && (parentName === "KeepAlive" || parentName.includes("Transition"))) {
-    const comp = parentName === "KeepAlive" ? "keep-alive" : "transition";
-    warn(`<router-view> can no longer be used directly inside <transition> or <keep-alive>.
-Use slot props instead:
-
-<router-view v-slot="{ Component }">
-  <${comp}>
-    <component :is="Component" />
-  </${comp}>
-</router-view>`);
-  }
-}
-function formatRouteLocation(routeLocation, tooltip) {
-  const copy = assign2({}, routeLocation, {
-    matched: routeLocation.matched.map((matched) => omit(matched, ["instances", "children", "aliasOf"]))
-  });
-  return {
-    _custom: {
-      type: null,
-      readOnly: true,
-      display: routeLocation.fullPath,
-      tooltip,
-      value: copy
-    }
-  };
-}
-function formatDisplay(display) {
-  return {
-    _custom: {
-      display
-    }
-  };
-}
-let routerId = 0;
-function addDevtools$1(app, router, matcher) {
-  if (router.__hasDevtools)
-    return;
-  router.__hasDevtools = true;
-  const id2 = routerId++;
-  setupDevtoolsPlugin({
-    id: "org.vuejs.router" + (id2 ? "." + id2 : ""),
-    label: "Vue Router",
-    packageName: "vue-router",
-    homepage: "https://next.router.vuejs.org/",
-    logo: "https://vuejs.org/images/icons/favicon-96x96.png",
-    componentStateTypes: ["Routing"],
-    app
-  }, (api) => {
-    api.on.inspectComponent((payload, ctx) => {
-      if (payload.instanceData) {
-        payload.instanceData.state.push({
-          type: "Routing",
-          key: "$route",
-          editable: false,
-          value: formatRouteLocation(router.currentRoute.value, "Current Route")
-        });
-      }
-    });
-    api.on.visitComponentTree(({ treeNode: node2, componentInstance }) => {
-      if (componentInstance.__vrv_devtools) {
-        const info = componentInstance.__vrv_devtools;
-        node2.tags.push({
-          label: (info.name ? `${info.name.toString()}: ` : "") + info.path,
-          textColor: 0,
-          tooltip: "This component is rendered by &lt;router-view&gt;",
-          backgroundColor: PINK_500
-        });
-      }
-      if (Array.isArray(componentInstance.__vrl_devtools)) {
-        componentInstance.__devtoolsApi = api;
-        componentInstance.__vrl_devtools.forEach((devtoolsData) => {
-          let backgroundColor = ORANGE_400;
-          let tooltip = "";
-          if (devtoolsData.isExactActive) {
-            backgroundColor = LIME_500;
-            tooltip = "This is exactly active";
-          } else if (devtoolsData.isActive) {
-            backgroundColor = BLUE_600;
-            tooltip = "This link is active";
-          }
-          node2.tags.push({
-            label: devtoolsData.route.path,
-            textColor: 0,
-            tooltip,
-            backgroundColor
-          });
-        });
-      }
-    });
-    watch(router.currentRoute, () => {
-      refreshRoutesView();
-      api.notifyComponentUpdate();
-      api.sendInspectorTree(routerInspectorId);
-      api.sendInspectorState(routerInspectorId);
-    });
-    const navigationsLayerId = "router:navigations:" + id2;
-    api.addTimelineLayer({
-      id: navigationsLayerId,
-      label: `Router${id2 ? " " + id2 : ""} Navigations`,
-      color: 4237508
-    });
-    router.onError((error, to) => {
-      api.addTimelineEvent({
-        layerId: navigationsLayerId,
-        event: {
-          title: "Error during Navigation",
-          subtitle: to.fullPath,
-          logType: "error",
-          time: Date.now(),
-          data: { error },
-          groupId: to.meta.__navigationId
-        }
-      });
-    });
-    let navigationId = 0;
-    router.beforeEach((to, from4) => {
-      const data2 = {
-        guard: formatDisplay("beforeEach"),
-        from: formatRouteLocation(from4, "Current Location during this navigation"),
-        to: formatRouteLocation(to, "Target location")
-      };
-      Object.defineProperty(to.meta, "__navigationId", {
-        value: navigationId++
-      });
-      api.addTimelineEvent({
-        layerId: navigationsLayerId,
-        event: {
-          time: Date.now(),
-          title: "Start of navigation",
-          subtitle: to.fullPath,
-          data: data2,
-          groupId: to.meta.__navigationId
-        }
-      });
-    });
-    router.afterEach((to, from4, failure) => {
-      const data2 = {
-        guard: formatDisplay("afterEach")
-      };
-      if (failure) {
-        data2.failure = {
-          _custom: {
-            type: Error,
-            readOnly: true,
-            display: failure ? failure.message : "",
-            tooltip: "Navigation Failure",
-            value: failure
-          }
-        };
-        data2.status = formatDisplay("\u274C");
-      } else {
-        data2.status = formatDisplay("\u2705");
-      }
-      data2.from = formatRouteLocation(from4, "Current Location during this navigation");
-      data2.to = formatRouteLocation(to, "Target location");
-      api.addTimelineEvent({
-        layerId: navigationsLayerId,
-        event: {
-          title: "End of navigation",
-          subtitle: to.fullPath,
-          time: Date.now(),
-          data: data2,
-          logType: failure ? "warning" : "default",
-          groupId: to.meta.__navigationId
-        }
-      });
-    });
-    const routerInspectorId = "router-inspector:" + id2;
-    api.addInspector({
-      id: routerInspectorId,
-      label: "Routes" + (id2 ? " " + id2 : ""),
-      icon: "book",
-      treeFilterPlaceholder: "Search routes"
-    });
-    function refreshRoutesView() {
-      if (!activeRoutesPayload)
-        return;
-      const payload = activeRoutesPayload;
-      let routes = matcher.getRoutes().filter((route) => !route.parent);
-      routes.forEach(resetMatchStateOnRouteRecord);
-      if (payload.filter) {
-        routes = routes.filter((route) => isRouteMatching(route, payload.filter.toLowerCase()));
-      }
-      routes.forEach((route) => markRouteRecordActive(route, router.currentRoute.value));
-      payload.rootNodes = routes.map(formatRouteRecordForInspector);
-    }
-    let activeRoutesPayload;
-    api.on.getInspectorTree((payload) => {
-      activeRoutesPayload = payload;
-      if (payload.app === app && payload.inspectorId === routerInspectorId) {
-        refreshRoutesView();
-      }
-    });
-    api.on.getInspectorState((payload) => {
-      if (payload.app === app && payload.inspectorId === routerInspectorId) {
-        const routes = matcher.getRoutes();
-        const route = routes.find((route2) => route2.record.__vd_id === payload.nodeId);
-        if (route) {
-          payload.state = {
-            options: formatRouteRecordMatcherForStateInspector(route)
-          };
-        }
-      }
-    });
-    api.sendInspectorTree(routerInspectorId);
-    api.sendInspectorState(routerInspectorId);
-  });
-}
-function modifierForKey(key) {
-  if (key.optional) {
-    return key.repeatable ? "*" : "?";
-  } else {
-    return key.repeatable ? "+" : "";
-  }
-}
-function formatRouteRecordMatcherForStateInspector(route) {
-  const { record } = route;
-  const fields = [
-    { editable: false, key: "path", value: record.path }
-  ];
-  if (record.name != null) {
-    fields.push({
-      editable: false,
-      key: "name",
-      value: record.name
-    });
-  }
-  fields.push({ editable: false, key: "regexp", value: route.re });
-  if (route.keys.length) {
-    fields.push({
-      editable: false,
-      key: "keys",
-      value: {
-        _custom: {
-          type: null,
-          readOnly: true,
-          display: route.keys.map((key) => `${key.name}${modifierForKey(key)}`).join(" "),
-          tooltip: "Param keys",
-          value: route.keys
-        }
-      }
-    });
-  }
-  if (record.redirect != null) {
-    fields.push({
-      editable: false,
-      key: "redirect",
-      value: record.redirect
-    });
-  }
-  if (route.alias.length) {
-    fields.push({
-      editable: false,
-      key: "aliases",
-      value: route.alias.map((alias) => alias.record.path)
-    });
-  }
-  fields.push({
-    key: "score",
-    editable: false,
-    value: {
-      _custom: {
-        type: null,
-        readOnly: true,
-        display: route.score.map((score) => score.join(", ")).join(" | "),
-        tooltip: "Score used to sort routes",
-        value: route.score
-      }
-    }
-  });
-  return fields;
-}
-const PINK_500 = 15485081;
-const BLUE_600 = 2450411;
-const LIME_500 = 8702998;
-const CYAN_400 = 2282478;
-const ORANGE_400 = 16486972;
-const DARK = 6710886;
-function formatRouteRecordForInspector(route) {
-  const tags = [];
-  const { record } = route;
-  if (record.name != null) {
-    tags.push({
-      label: String(record.name),
-      textColor: 0,
-      backgroundColor: CYAN_400
-    });
-  }
-  if (record.aliasOf) {
-    tags.push({
-      label: "alias",
-      textColor: 0,
-      backgroundColor: ORANGE_400
-    });
-  }
-  if (route.__vd_match) {
-    tags.push({
-      label: "matches",
-      textColor: 0,
-      backgroundColor: PINK_500
-    });
-  }
-  if (route.__vd_exactActive) {
-    tags.push({
-      label: "exact",
-      textColor: 0,
-      backgroundColor: LIME_500
-    });
-  }
-  if (route.__vd_active) {
-    tags.push({
-      label: "active",
-      textColor: 0,
-      backgroundColor: BLUE_600
-    });
-  }
-  if (record.redirect) {
-    tags.push({
-      label: "redirect: " + (typeof record.redirect === "string" ? record.redirect : "Object"),
-      textColor: 16777215,
-      backgroundColor: DARK
-    });
-  }
-  let id2 = record.__vd_id;
-  if (id2 == null) {
-    id2 = String(routeRecordId++);
-    record.__vd_id = id2;
-  }
-  return {
-    id: id2,
-    label: record.path,
-    tags,
-    children: route.children.map(formatRouteRecordForInspector)
-  };
-}
-let routeRecordId = 0;
-const EXTRACT_REGEXP_RE = /^\/(.*)\/([a-z]*)$/;
-function markRouteRecordActive(route, currentRoute) {
-  const isExactActive = currentRoute.matched.length && isSameRouteRecord(currentRoute.matched[currentRoute.matched.length - 1], route.record);
-  route.__vd_exactActive = route.__vd_active = isExactActive;
-  if (!isExactActive) {
-    route.__vd_active = currentRoute.matched.some((match2) => isSameRouteRecord(match2, route.record));
-  }
-  route.children.forEach((childRoute) => markRouteRecordActive(childRoute, currentRoute));
-}
-function resetMatchStateOnRouteRecord(route) {
-  route.__vd_match = false;
-  route.children.forEach(resetMatchStateOnRouteRecord);
-}
-function isRouteMatching(route, filter4) {
-  const found = String(route.re).match(EXTRACT_REGEXP_RE);
-  route.__vd_match = false;
-  if (!found || found.length < 3) {
-    return false;
-  }
-  const nonEndingRE = new RegExp(found[1].replace(/\$$/, ""), found[2]);
-  if (nonEndingRE.test(filter4)) {
-    route.children.forEach((child) => isRouteMatching(child, filter4));
-    if (route.record.path !== "/" || filter4 === "/") {
-      route.__vd_match = route.re.test(filter4);
-      return true;
-    }
-    return false;
-  }
-  const path2 = route.record.path.toLowerCase();
-  const decodedPath = decode(path2);
-  if (!filter4.startsWith("/") && (decodedPath.includes(filter4) || path2.includes(filter4)))
-    return true;
-  if (decodedPath.startsWith(filter4) || path2.startsWith(filter4))
-    return true;
-  if (route.record.name && String(route.record.name).includes(filter4))
-    return true;
-  return route.children.some((child) => isRouteMatching(child, filter4));
-}
-function omit(obj, keys4) {
-  const ret = {};
-  for (const key in obj) {
-    if (!keys4.includes(key)) {
-      ret[key] = obj[key];
-    }
-  }
-  return ret;
-}
 function createRouter(options) {
   const matcher = createRouterMatcher(options.routes, options);
   const parseQuery$1 = options.parseQuery || parseQuery;
   const stringifyQuery$1 = options.stringifyQuery || stringifyQuery;
   const routerHistory = options.history;
-  if (!routerHistory)
-    throw new Error('Provide the "history" option when calling "createRouter()": https://next.router.vuejs.org/api/#history.');
   const beforeGuards = useCallbacks();
   const beforeResolveGuards = useCallbacks();
   const afterGuards = useCallbacks();
@@ -30963,8 +29004,6 @@ function createRouter(options) {
     const recordMatcher = matcher.getRecordMatcher(name);
     if (recordMatcher) {
       matcher.removeRoute(recordMatcher);
-    } else {
-      warn(`Cannot remove non-existent route "${String(name)}"`);
     }
   }
   function getRoutes() {
@@ -30979,13 +29018,6 @@ function createRouter(options) {
       const locationNormalized = parseURL(parseQuery$1, rawLocation, currentLocation.path);
       const matchedRoute2 = matcher.resolve({ path: locationNormalized.path }, currentLocation);
       const href2 = routerHistory.createHref(locationNormalized.fullPath);
-      {
-        if (href2.startsWith("//"))
-          warn(`Location "${rawLocation}" resolved to "${href2}". A resolved location cannot start with multiple slashes.`);
-        else if (!matchedRoute2.matched.length) {
-          warn(`No match found for location with path "${rawLocation}"`);
-        }
-      }
       return assign2(locationNormalized, matchedRoute2, {
         params: decodeParams(matchedRoute2.params),
         hash: decode(locationNormalized.hash),
@@ -30995,9 +29027,6 @@ function createRouter(options) {
     }
     let matcherLocation;
     if ("path" in rawLocation) {
-      if ("params" in rawLocation && !("name" in rawLocation) && Object.keys(rawLocation.params).length) {
-        warn(`Path "${rawLocation.path}" was passed with params but they will be ignored. Use a named route alongside params instead.`);
-      }
       matcherLocation = assign2({}, rawLocation, {
         path: parseURL(parseQuery$1, rawLocation.path, currentLocation.path).path
       });
@@ -31015,22 +29044,12 @@ function createRouter(options) {
     }
     const matchedRoute = matcher.resolve(matcherLocation, currentLocation);
     const hash = rawLocation.hash || "";
-    if (hash && !hash.startsWith("#")) {
-      warn(`A \`hash\` should always start with the character "#". Replace "${hash}" with "#${hash}".`);
-    }
     matchedRoute.params = normalizeParams(decodeParams(matchedRoute.params));
     const fullPath = stringifyURL(stringifyQuery$1, assign2({}, rawLocation, {
       hash: encodeHash(hash),
       path: matchedRoute.path
     }));
     const href = routerHistory.createHref(fullPath);
-    {
-      if (href.startsWith("//")) {
-        warn(`Location "${rawLocation}" resolved to "${href}". A resolved location cannot start with multiple slashes.`);
-      } else if (!matchedRoute.matched.length) {
-        warn(`No match found for location with path "${"path" in rawLocation ? rawLocation.path : rawLocation}"`);
-      }
-    }
     return assign2({
       fullPath,
       hash,
@@ -31066,12 +29085,6 @@ function createRouter(options) {
         newTargetLocation = newTargetLocation.includes("?") || newTargetLocation.includes("#") ? newTargetLocation = locationAsObject(newTargetLocation) : { path: newTargetLocation };
         newTargetLocation.params = {};
       }
-      if (!("path" in newTargetLocation) && !("name" in newTargetLocation)) {
-        warn(`Invalid redirect found:
-${JSON.stringify(newTargetLocation, null, 2)}
- when navigating to "${to.fullPath}". A redirect must contain a name or path. This will break in production.`);
-        throw new Error("Invalid redirect");
-      }
       return assign2({
         query: to.query,
         hash: to.hash,
@@ -31102,10 +29115,6 @@ ${JSON.stringify(newTargetLocation, null, 2)}
     return (failure ? Promise.resolve(failure) : navigate(toLocation, from4)).catch((error) => isNavigationFailure(error) ? error : triggerError(error, toLocation, from4)).then((failure2) => {
       if (failure2) {
         if (isNavigationFailure(failure2, 2)) {
-          if (isSameRouteLocation(stringifyQuery$1, resolve3(failure2.to), toLocation) && redirectedFrom && (redirectedFrom._count = redirectedFrom._count ? redirectedFrom._count + 1 : 1) > 10) {
-            warn(`Detected an infinite redirection in a navigation guard when going from "${from4.fullPath}" to "${toLocation.fullPath}". Aborting to avoid a Stack Overflow. This will break in production if not fixed.`);
-            return Promise.reject(new Error("Infinite redirect in navigation guard"));
-          }
           return pushWithRedirect(assign2(locationAsObject(failure2.to), {
             state: data2,
             force,
@@ -31251,9 +29260,6 @@ ${JSON.stringify(newTargetLocation, null, 2)}
     if (list.length) {
       list.forEach((handler) => handler(error, to, from4));
     } else {
-      {
-        warn("uncaught error during route navigation:");
-      }
       console.error(error);
     }
     return Promise.reject(error);
@@ -31313,7 +29319,6 @@ ${JSON.stringify(newTargetLocation, null, 2)}
       if (isBrowser && !started && currentRoute.value === START_LOCATION_NORMALIZED) {
         started = true;
         push2(routerHistory.location).catch((err) => {
-          warn("Unexpected error when starting the router:", err);
         });
       }
       const reactiveRoute = {};
@@ -31336,9 +29341,6 @@ ${JSON.stringify(newTargetLocation, null, 2)}
         }
         unmountApp();
       };
-      if (isBrowser) {
-        addDevtools$1(app, router2, matcher);
-      }
     }
   };
   return router;
@@ -31395,11 +29397,6 @@ function isObject(obj) {
 }
 function isPromise(val) {
   return val && typeof val.then === "function";
-}
-function assert(condition, msg) {
-  if (!condition) {
-    throw new Error("[vuex] " + msg);
-  }
 }
 function partial(fn, arg) {
   return function() {
@@ -31459,7 +29456,7 @@ function installModule(store, rootState, path2, module, hot) {
   var isRoot = !path2.length;
   var namespace = store._modules.getNamespace(path2);
   if (module.namespaced) {
-    if (store._modulesNamespaceMap[namespace] && true) {
+    if (store._modulesNamespaceMap[namespace] && false) {
       console.error("[vuex] duplicate namespace " + namespace + " for the namespaced module " + path2.join("/"));
     }
     store._modulesNamespaceMap[namespace] = module;
@@ -31468,11 +29465,6 @@ function installModule(store, rootState, path2, module, hot) {
     var parentState = getNestedState(rootState, path2.slice(0, -1));
     var moduleName = path2[path2.length - 1];
     store._withCommit(function() {
-      {
-        if (moduleName in parentState) {
-          console.warn('[vuex] state field "' + moduleName + '" was overridden by a module with the same name at "' + path2.join(".") + '"');
-        }
-      }
       parentState[moduleName] = module.state;
     });
   }
@@ -31504,10 +29496,6 @@ function makeLocalContext(store, namespace, path2) {
       var type = args.type;
       if (!options || !options.root) {
         type = namespace + type;
-        if (!store._actions[type]) {
-          console.error("[vuex] unknown local action type: " + args.type + ", global type: " + type);
-          return;
-        }
       }
       return store.dispatch(type, payload);
     },
@@ -31518,10 +29506,6 @@ function makeLocalContext(store, namespace, path2) {
       var type = args.type;
       if (!options || !options.root) {
         type = namespace + type;
-        if (!store._mutations[type]) {
-          console.error("[vuex] unknown local mutation type: " + args.type + ", global type: " + type);
-          return;
-        }
       }
       store.commit(type, payload, options);
     }
@@ -31594,9 +29578,6 @@ function registerAction(store, type, handler, local) {
 }
 function registerGetter(store, type, rawGetter, local) {
   if (store._wrappedGetters[type]) {
-    {
-      console.error("[vuex] duplicate getter key: " + type);
-    }
     return;
   }
   store._wrappedGetters[type] = function wrappedGetter(store2) {
@@ -31607,9 +29588,6 @@ function enableStrictMode(store) {
   watch(function() {
     return store._state.data;
   }, function() {
-    {
-      assert(store._committing, "do not mutate vuex store state outside mutation handlers.");
-    }
   }, { deep: true, flush: "sync" });
 }
 function getNestedState(state, path2) {
@@ -31622,9 +29600,6 @@ function unifyObjectStyle(type, payload, options) {
     options = payload;
     payload = type;
     type = type.type;
-  }
-  {
-    assert(typeof type === "string", "expects string as the type, but found " + typeof type + ".");
   }
   return { type, payload, options };
 }
@@ -31943,9 +29918,6 @@ ModuleCollection.prototype.register = function register(path2, rawModule, runtim
   var this$1$1 = this;
   if (runtime2 === void 0)
     runtime2 = true;
-  {
-    assertRawModule(path2, rawModule);
-  }
   var newModule = new Module(rawModule, runtime2);
   if (path2.length === 0) {
     this.root = newModule;
@@ -31964,9 +29936,6 @@ ModuleCollection.prototype.unregister = function unregister(path2) {
   var key = path2[path2.length - 1];
   var child = parent2.getChild(key);
   if (!child) {
-    {
-      console.warn("[vuex] trying to unregister module '" + key + "', which is not registered");
-    }
     return;
   }
   if (!child.runtime) {
@@ -31983,57 +29952,15 @@ ModuleCollection.prototype.isRegistered = function isRegistered(path2) {
   return false;
 };
 function update3(path2, targetModule, newModule) {
-  {
-    assertRawModule(path2, newModule);
-  }
   targetModule.update(newModule);
   if (newModule.modules) {
     for (var key in newModule.modules) {
       if (!targetModule.getChild(key)) {
-        {
-          console.warn("[vuex] trying to add a new module '" + key + "' on hot reloading, manual reload is needed");
-        }
         return;
       }
       update3(path2.concat(key), targetModule.getChild(key), newModule.modules[key]);
     }
   }
-}
-var functionAssert = {
-  assert: function(value) {
-    return typeof value === "function";
-  },
-  expected: "function"
-};
-var objectAssert = {
-  assert: function(value) {
-    return typeof value === "function" || typeof value === "object" && typeof value.handler === "function";
-  },
-  expected: 'function or object with "handler" function'
-};
-var assertTypes = {
-  getters: functionAssert,
-  mutations: functionAssert,
-  actions: objectAssert
-};
-function assertRawModule(path2, rawModule) {
-  Object.keys(assertTypes).forEach(function(key) {
-    if (!rawModule[key]) {
-      return;
-    }
-    var assertOptions = assertTypes[key];
-    forEachValue(rawModule[key], function(value, type) {
-      assert(assertOptions.assert(value), makeAssertionMessage(path2, key, type, value, assertOptions.expected));
-    });
-  });
-}
-function makeAssertionMessage(path2, key, type, value, expected) {
-  var buf = key + " should be " + expected + ' but "' + key + "." + type + '"';
-  if (path2.length > 0) {
-    buf += ' in module "' + path2.join(".") + '"';
-  }
-  buf += " is " + JSON.stringify(value) + ".";
-  return buf;
 }
 function createStore(options) {
   return new Store(options);
@@ -32042,10 +29969,6 @@ var Store = function Store2(options) {
   var this$1$1 = this;
   if (options === void 0)
     options = {};
-  {
-    assert(typeof Promise !== "undefined", "vuex requires a Promise polyfill in this browser.");
-    assert(this instanceof Store2, "store must be called with the new operator.");
-  }
   var plugins = options.plugins;
   if (plugins === void 0)
     plugins = [];
@@ -32085,7 +30008,7 @@ var prototypeAccessors = { state: { configurable: true } };
 Store.prototype.install = function install(app, injectKey) {
   app.provide(injectKey || storeKey, this);
   app.config.globalProperties.$store = this;
-  var useDevtools = this._devtools !== void 0 ? this._devtools : true;
+  var useDevtools = this._devtools !== void 0 ? this._devtools : false;
   if (useDevtools) {
     addDevtools(app, this);
   }
@@ -32094,22 +30017,15 @@ prototypeAccessors.state.get = function() {
   return this._state.data;
 };
 prototypeAccessors.state.set = function(v) {
-  {
-    assert(false, "use store.replaceState() to explicit replace store state.");
-  }
 };
 Store.prototype.commit = function commit(_type, _payload, _options) {
   var this$1$1 = this;
   var ref2 = unifyObjectStyle(_type, _payload, _options);
   var type = ref2.type;
   var payload = ref2.payload;
-  var options = ref2.options;
   var mutation = { type, payload };
   var entry = this._mutations[type];
   if (!entry) {
-    {
-      console.error("[vuex] unknown mutation type: " + type);
-    }
     return;
   }
   this._withCommit(function() {
@@ -32120,9 +30036,6 @@ Store.prototype.commit = function commit(_type, _payload, _options) {
   this._subscribers.slice().forEach(function(sub) {
     return sub(mutation, this$1$1.state);
   });
-  if (options && options.silent) {
-    console.warn("[vuex] mutation type: " + type + ". Silent option has been removed. Use the filter functionality in the vue-devtools");
-  }
 };
 Store.prototype.dispatch = function dispatch(_type, _payload) {
   var this$1$1 = this;
@@ -32132,9 +30045,6 @@ Store.prototype.dispatch = function dispatch(_type, _payload) {
   var action = { type, payload };
   var entry = this._actions[type];
   if (!entry) {
-    {
-      console.error("[vuex] unknown action type: " + type);
-    }
     return;
   }
   try {
@@ -32144,10 +30054,6 @@ Store.prototype.dispatch = function dispatch(_type, _payload) {
       return sub.before(action, this$1$1.state);
     });
   } catch (e2) {
-    {
-      console.warn("[vuex] error in before action subscribers: ");
-      console.error(e2);
-    }
   }
   var result = entry.length > 1 ? Promise.all(entry.map(function(handler) {
     return handler(payload);
@@ -32161,10 +30067,6 @@ Store.prototype.dispatch = function dispatch(_type, _payload) {
           return sub.after(action, this$1$1.state);
         });
       } catch (e2) {
-        {
-          console.warn("[vuex] error in after action subscribers: ");
-          console.error(e2);
-        }
       }
       resolve3(res);
     }, function(error) {
@@ -32175,10 +30077,6 @@ Store.prototype.dispatch = function dispatch(_type, _payload) {
           return sub.error(action, this$1$1.state, error);
         });
       } catch (e2) {
-        {
-          console.warn("[vuex] error in error action subscribers: ");
-          console.error(e2);
-        }
       }
       reject2(error);
     });
@@ -32193,9 +30091,6 @@ Store.prototype.subscribeAction = function subscribeAction(fn, options) {
 };
 Store.prototype.watch = function watch$1(getter, cb, options) {
   var this$1$1 = this;
-  {
-    assert(typeof getter === "function", "store.watch only accepts a function.");
-  }
   return watch(function() {
     return getter(this$1$1.state, this$1$1.getters);
   }, cb, Object.assign({}, options));
@@ -32212,10 +30107,6 @@ Store.prototype.registerModule = function registerModule(path2, rawModule, optio
   if (typeof path2 === "string") {
     path2 = [path2];
   }
-  {
-    assert(Array.isArray(path2), "module path must be a string or an Array.");
-    assert(path2.length > 0, "cannot register the root module by using registerModule.");
-  }
   this._modules.register(path2, rawModule);
   installModule(this, this.state, path2, this._modules.get(path2), options.preserveState);
   resetStoreState(this, this.state);
@@ -32224,9 +30115,6 @@ Store.prototype.unregisterModule = function unregisterModule(path2) {
   var this$1$1 = this;
   if (typeof path2 === "string") {
     path2 = [path2];
-  }
-  {
-    assert(Array.isArray(path2), "module path must be a string or an Array.");
   }
   this._modules.unregister(path2);
   this._withCommit(function() {
@@ -32238,9 +30126,6 @@ Store.prototype.unregisterModule = function unregisterModule(path2) {
 Store.prototype.hasModule = function hasModule(path2) {
   if (typeof path2 === "string") {
     path2 = [path2];
-  }
-  {
-    assert(Array.isArray(path2), "module path must be a string or an Array.");
   }
   return this._modules.isRegistered(path2);
 };
@@ -32322,4 +30207,4 @@ var e, i = require$$0, n = index_common, t = typeof window != "undefined", u = f
   return e || (e = new n.WindowResizeSubject()), e;
 });
 var useWindowSize = dist.useWindowSize = o;
-export { createBlock as A, createRouter as B, createWebHashHistory as C, createApp as D, Fragment as F, Suspense as S, createVNode as a, ref as b, createElementBlock as c, useRouter as d, createBaseVNode as e, vShow as f, computed as g, withCtx as h, createTextVNode as i, renderList as j, renderSlot as k, createCommentVNode as l, useWindowSize as m, normalizeClass as n, openBlock as o, parse as p, withKeys as q, resolveComponent as r, pushScopeId as s, toDisplayString as t, useStore as u, vModelText as v, withDirectives as w, popScopeId as x, createStore as y, useRoute as z };
+export { createBlock as A, createRouter as B, createWebHashHistory as C, createApp as D, Fragment as F, Suspense as S, createVNode as a, ref as b, createElementBlock as c, createBaseVNode as d, useRouter as e, vShow as f, computed as g, withCtx as h, createTextVNode as i, renderList as j, renderSlot as k, createCommentVNode as l, useWindowSize as m, normalizeClass as n, openBlock as o, parse as p, withKeys as q, resolveComponent as r, pushScopeId as s, toDisplayString as t, useStore as u, vModelText as v, withDirectives as w, popScopeId as x, createStore as y, useRoute as z };

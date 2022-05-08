@@ -157,7 +157,7 @@ export default {
     setup(){
         const store = useStore()
         const router = useRouter()
-        const { width, height } = useWindowSize();
+        const { width } = useWindowSize();
 
         const modalError = ref("");
         const searchTxt = ref("");

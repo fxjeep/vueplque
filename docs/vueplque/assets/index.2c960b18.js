@@ -14,7 +14,7 @@ var __spreadValues = (a, b) => {
     }
   return a;
 };
-import { r as resolveComponent, o as openBlock, c as createElementBlock, a as createVNode, p as parse, b as ref, u as useStore, d as useRouter, e as createBaseVNode, t as toDisplayString, w as withDirectives, v as vModelText, f as vShow, g as computed, n as normalizeClass, h as withCtx, i as createTextVNode, F as Fragment, j as renderList, k as renderSlot, l as createCommentVNode, m as useWindowSize, q as withKeys, s as pushScopeId, x as popScopeId, y as createStore, z as useRoute, A as createBlock, S as Suspense, B as createRouter, C as createWebHashHistory, D as createApp } from "./vendor.32c9f183.js";
+import { r as resolveComponent, o as openBlock, c as createElementBlock, a as createVNode, p as parse, b as ref, d as createBaseVNode, t as toDisplayString, w as withDirectives, v as vModelText, u as useStore, e as useRouter, f as vShow, g as computed, n as normalizeClass, h as withCtx, i as createTextVNode, F as Fragment, j as renderList, k as renderSlot, l as createCommentVNode, m as useWindowSize, q as withKeys, s as pushScopeId, x as popScopeId, y as createStore, z as useRoute, A as createBlock, S as Suspense, B as createRouter, C as createWebHashHistory, D as createApp } from "./vendor.59a6eaba.js";
 const p = function polyfill() {
   const relList = document.createElement("link").relList;
   if (relList && relList.supports && relList.supports("modulepreload")) {
@@ -816,7 +816,7 @@ function _sfc_render$b(_ctx, _cache, $props, $setup, $data, $options) {
           }, "Cancel")
         ])
       ])
-    ], 2)) : createCommentVNode("v-if", true),
+    ], 2)) : createCommentVNode("", true),
     createBaseVNode("div", {
       class: normalizeClass(["modal", { "is-active": $setup.showConvertToDead }])
     }, [
@@ -1849,7 +1849,7 @@ const _sfc_main$9 = {
     };
   }
 };
-const _withScopeId = (n) => (pushScopeId("data-v-75071f03"), n = n(), popScopeId(), n);
+const _withScopeId = (n) => (pushScopeId("data-v-47a30912"), n = n(), popScopeId(), n);
 const _hoisted_1$8 = { class: "container" };
 const _hoisted_2$8 = { class: "field has-addons" };
 const _hoisted_3$8 = { class: "control has-icons-left has-icons-right" };
@@ -2005,8 +2005,8 @@ function _sfc_render$9(_ctx, _cache, $props, $setup, $data, $options) {
                 class: normalizeClass({ "is-selected": idx == $setup.selectedIdx })
               }, [
                 createBaseVNode("td", null, [
-                  c.PrintState == "A" ? (openBlock(), createElementBlock("span", _hoisted_15$1, _hoisted_17$1)) : createCommentVNode("v-if", true),
-                  c.PrintState == "I" ? (openBlock(), createElementBlock("span", _hoisted_18$1, _hoisted_20$1)) : createCommentVNode("v-if", true)
+                  c.PrintState == "A" ? (openBlock(), createElementBlock("span", _hoisted_15$1, _hoisted_17$1)) : createCommentVNode("", true),
+                  c.PrintState == "I" ? (openBlock(), createElementBlock("span", _hoisted_18$1, _hoisted_20$1)) : createCommentVNode("", true)
                 ]),
                 createBaseVNode("td", null, toDisplayString(c.Name), 1),
                 createBaseVNode("td", null, toDisplayString(c.Code), 1),
@@ -2050,7 +2050,7 @@ function _sfc_render$9(_ctx, _cache, $props, $setup, $data, $options) {
                     }, _hoisted_34, 8, _hoisted_32)
                   ])
                 ])
-              ])) : createCommentVNode("v-if", true)
+              ])) : createCommentVNode("", true)
             ], 64);
           }), 128))
         ])
@@ -2138,10 +2138,10 @@ function _sfc_render$9(_ctx, _cache, $props, $setup, $data, $options) {
           }, "Cancel")
         ])
       ])
-    ], 2)) : createCommentVNode("v-if", true)
+    ], 2)) : createCommentVNode("", true)
   ]);
 }
-var Contacts = /* @__PURE__ */ _export_sfc(_sfc_main$9, [["render", _sfc_render$9], ["__scopeId", "data-v-75071f03"]]);
+var Contacts = /* @__PURE__ */ _export_sfc(_sfc_main$9, [["render", _sfc_render$9], ["__scopeId", "data-v-47a30912"]]);
 var Edit_vue_vue_type_style_index_0_scoped_true_lang = "";
 const _sfc_main$8 = {
   components: { Contacts, Editor },
@@ -2167,7 +2167,7 @@ function _sfc_render$8(_ctx, _cache, $props, $setup, $data, $options) {
     ])
   ]);
 }
-var Edit = /* @__PURE__ */ _export_sfc(_sfc_main$8, [["render", _sfc_render$8], ["__scopeId", "data-v-3594053a"]]);
+var Edit = /* @__PURE__ */ _export_sfc(_sfc_main$8, [["render", _sfc_render$8], ["__scopeId", "data-v-9742fb56"]]);
 const collectionNames = {
   contact: "Contacts",
   live: "Lives",
