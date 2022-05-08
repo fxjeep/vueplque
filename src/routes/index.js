@@ -71,6 +71,7 @@ const routes =  [
 ];
 
 const router = createRouter({
+  base: "/vueplque/",
   history: createWebHashHistory(),
   routes,
 });
