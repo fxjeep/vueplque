@@ -19,7 +19,8 @@ export default ({ command, mode }) => {
     base: "/vueplque/",  
     mode: "development",
     build: {
-      outDir: './docs'
+      outDir: './docs',
+      minify: false
     },
     resolve: {    
       alias: {      
