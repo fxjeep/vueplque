@@ -25,9 +25,9 @@
             <div class="tabs is-boxed">
             
             <ul class="tab-no-left">
-                <li :class="{'is-active':activeTab==tabs.live}" @click="selectTab(tabs.live)"><a>Live</a></li>
-                <li :class="{'is-active':activeTab==tabs.dead}" @click="selectTab(tabs.dead)"><a>Dead</a></li>
-                <li :class="{'is-active':activeTab==tabs.ancestor}" @click="selectTab(tabs.ancestor)"><a>Ancestor</a></li>
+                <li :class="{'is-active':activeTab==tabs.live}" @click="selectTab(tabs.live)"><a>Live</a> {{currentLive.length}}</li>
+                <li :class="{'is-active':activeTab==tabs.dead}" @click="selectTab(tabs.dead)"><a>Dead</a> {{currentDead.length}}</li>
+                <li :class="{'is-active':activeTab==tabs.ancestor}" @click="selectTab(tabs.ancestor)"><a>Ancestor</a> {{currentAncestor.length}}</li>
             </ul>
         </div>            
        <div class="container" v-show="activeTab==tabs.live">

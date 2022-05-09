@@ -47,11 +47,13 @@ const store = createStore({
   },
   getters: {
     filteredContacts: (state) => (txt) => {
-      return state.contacts.filter(c => (c.Name.indexOf(txt)>=0) || (c.Code.indexOf(txt.toUpperCase())>=0) );
+      return state.contacts.filter(c => (c.Name.indexOf(txt)>=0) || (c.Code.indexOf(txt.toUpperCase())>=0) )
+                .sort((a,b) => (a.Code > b.Code) ? 1 : ((b.Code > a.Code) ? -1 : 0));
     },
     currentContact: (state)=>{
-        if (Array.isArray(state.contacts) && state.contacts.length>state.selectedIdx && state.selectedIdx>=0){
-          return state.contacts[state.selectedIdx];
+        if (Array.isArray(state.contacts)) {
+          let matched= state.contacts.filter(c=>c.objectId==state.selectedIdx);
+          if (matched.length>0) return matched[0];
         }
         return {};
     },

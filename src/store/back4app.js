@@ -50,6 +50,7 @@ export function getTodayDate(){
 
 export function getAllContactList(callback){
     const query = new Parse.Query(collectionNames.contact);
+    query.limit(10000)
     query.find()
         .then(results=>{
             let list = JSON.parse(JSON.stringify(results));
@@ -65,6 +66,7 @@ export function deleteContactFunc(id){
 
 export async function loadContactDetail(type, contactId){
         let query = new Parse.Query(type);
+        query.limit(1000)
         query.equalTo('ContactId', contactId);
         let results = await query.find();
         let list = JSON.parse(JSON.stringify(results));
@@ -129,8 +131,28 @@ export function getDetailRec(type, contactid, rec, isPrint){
     }
 }
 
-export function bulkSave(type, list){
-        Parse.Object.saveAll(list);
+export async function bulkSave(type, list){
+    //split list to 100 rows each
+    let chunks = [];
+    let chunkidx= 0;
+    let sect=[];
+    for(let i=0; i<list.length; i++){
+        if (chunkidx==100){
+            chunkidx=0;
+            chunks.push(sect);
+            sect = [];
+        }
+        sect.push(list[i]);
+        chunkidx++;
+    }
+
+    if (sect.length>0){
+        chunks.push(sect);
+    }
+
+    for(let j=0; j<chunks.length;j++){
+        await Parse.Object.saveAll(chunks[j])
+    }
 }
 
 export function setContactPrintState(contactId, printState){

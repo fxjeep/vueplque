@@ -73,7 +73,7 @@ nav.navbar {
 }
 
 .font2 {
-  font-size: 15px;
+  font-size: 10px;
 }
 
 .font3 {
@@ -122,7 +122,7 @@ nav.navbar {
 }
 
 .plaque-img {
-  width: 3.3cm;
+  width: 2.8cm;
   height: 6.8cm;
 }
 
@@ -138,10 +138,10 @@ div.page
   flex-direction: column;
   justify-content:center;
   align-items:center;
-  left: 0.75cm;
+  left: 0.69cm;
   top: 3cm;
   white-space: pre-line;
-  width: 1.8cm;
+  width: 1.5cm;
   height: 2cm;
   font-size: 10px;
   border: 0px solid;
@@ -158,16 +158,17 @@ div.page
     line-height: 0.3cm;
     transform-origin: 0 0;
     transform: rotate(90deg);
+    font-size: 8px;
 }
 
 .plaque-side-vertical-ws {
-  font-size: 15px;
     position: absolute;
-    top: 0;
-    left: 0.6cm;
-    width: 3.4cm;
+    top: 0cm;
+    left: 0.4cm;
+    width: 2.2cm;
     height: 0.7cm;
     line-height: 0.3cm;
+    font-size: 10px;
     transform-origin: 0 0;
     transform: rotate(90deg);
 }
@@ -198,11 +199,12 @@ div.page
   justify-content:left;
   align-items:left;
   left: 0.1cm;
-  top: 6.3cm;
+  top: 3.1cm;
   white-space: pre-line;
-  width: 0.6cm;
-  height: 4.2cm;
+  width: 0.5cm;
+  height: 2.2cm;
   text-align: left;
+  border: 0px solid;
 }
 
 .main-name-ws {
@@ -211,11 +213,12 @@ div.page
   flex-direction: column;
   justify-content:center;
   align-items:center;
-  left: 0.9cm;
-  top: 5.2cm;
+  left: 0.8cm;
+  top: 2.6cm;
   white-space: pre-line;
-  width: 2.2cm;
-  height: 4.1cm;
+  width: 1.2cm;
+  height: 2.3cm;
+  border: 0px solid;
 }
 
 .side-name-zx {
@@ -318,8 +321,15 @@ div.page
   width: 150px;
 }
 
+#allcontact {
+  min-height: 75vh;
+  overflow-y: scroll;
+  height:75vh;
+}
 
-body
+
+html, body
 {
   margin: 0mm 0mm 0mm 0mm;
+  height:100%;
 }

@@ -7,9 +7,9 @@
             <p class="title has-text-left">Data Import</p>
             <p class="has-text-left is-size-6">
             Format: (delimited by , or tab)<br/>
-            1. ContactName, ContactCode, LiveName;<br/>
-            2. ContactName, ContactCode, DeadName, LiveName, Relation<br/>
-            3. ContactName, ContactCode, Surname, LiveName;<br/>
+            1. ContactName, ContactCode, IsPrint, LiveName;<br/>
+            2. ContactName, ContactCode, IsPrint, DeadName, LiveName, Relation<br/>
+            3. ContactName, ContactCode, IsPrint, Surname, LiveName;<br/>
             </p>
         </div>
     </div>
@@ -55,7 +55,9 @@ export default {
 
                 await prev;
 
-                let fields = item.split(",");
+                let fields = item.split(",").map(function(item) {
+                                                    return item.trim();
+                                                    });
                 
                 if (fields.length<3) {
                     fields = item.split("\t");
@@ -68,14 +70,15 @@ export default {
                 let contact= store.getters.findContact(name, code);
                 let contactId = null;
                 if (!contact) {
-                    let result = await addNewContactFunc(fields[0], fields[1], printStatus.No)
+                    let printstate = fields[2]=="0"?printStatus.No:printStatus.All;
+                    let result = await addNewContactFunc(fields[0], fields[1], printstate)
                     contact = result;
                     contactId = contact.id;
                     await store.dispatch("addNewContactToStore", {contact:{
                         Name:fields[0],
                         Code:fields[1],
                         LastPrint:"",
-                        PrintState:printStatus.No,
+                        PrintState: printstate,
                         objectId : contactId
                     }});
                 }else{
@@ -84,14 +87,14 @@ export default {
 
 
 
-                if (fields.length == 3){
-                    liveList.push(getDetailRec(collectionNames.live, contactId, {LiveName:fields[2]}, false));
+                if (fields.length == 4){
+                    liveList.push(getDetailRec(collectionNames.live, contactId, {LiveName:fields[3]}, false));
+                } else if (fields.length == 6){
+                    deadList.push(getDetailRec(collectionNames.dead, contactId, 
+                            {DeadName:fields[3], LiveName:fields[4], Relation:fields[5]}, false));
                 } else if (fields.length == 5){
-                    deadList.push(collectionNames.dead, contactId, 
-                            {DeadName:fields[2], LiveName:fields[3], Relation:fields[4]}, false);
-                } else if (fields.length == 4){
-                    anceList.push(collectionNames.ancestor, contactId, 
-                            {Surname: fields[2], LiveName:fields[3]}, false);
+                    anceList.push(getDetailRec(collectionNames.ancestor, contactId, 
+                            {Surname: fields[3], LiveName:fields[4]}, false));
                 }  
             }, undefined);
 

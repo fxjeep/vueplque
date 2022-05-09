@@ -3,7 +3,7 @@
       <div class="plaque-page page" v-for="(page, pageidx) in allLive" :key="'p'+pageidx">
         <table  class="plaque-page-table">
             <tr>
-                <td colspan="5" align="right" class="noborder-top">
+                <td colspan="7" align="right" class="noborder-top">
                     {{pageidx+1}} of {{allLive.length}}
                 </td>
             </tr>
@@ -11,14 +11,14 @@
                 <td v-for="(rec,cidx) in row" :key="'col'+cidx" class="plaquebox border-td">
                     <img src="../assets/changsheng.jpg" class="plaque-img"/>
                     <div class="main-name">
-                        <div v-for="c in getMainNameCharList(rec.LiveName)" :key="c" :class="[getMainFontSize(rec.LiveName)]">
+                        <div v-for="c in getMainNameCharList(rec.LiveName)" :key="c" class="font2">
                             {{c}}
                         </div>
                     </div>
                 </td>
             </tr>
             <tr>
-                <td colspan="5" align="right" class="noborder-bottom">
+                <td colspan="7" align="right" class="noborder-bottom">
                     {{generatedTime}}
                 </td>
             </tr>

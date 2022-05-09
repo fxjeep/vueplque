@@ -24,8 +24,8 @@
                 </button>
             </div>
         </div>
-        <div class="container">
-            <table width="100%" border="1" class="table is-striped narrower">
+        <div class="container" id="allcontact">
+            <table width="90%" border="1" class="table is-striped narrower">
                 <thead>
                     <th class="iconcol"></th>
                     <th class="namecol">Name</th>
@@ -34,7 +34,7 @@
                 </thead>
                 <tbody>
                     <template v-for="(c,idx) in contacts" :key="c.objectId">
-                        <tr  @click="selectContact(idx, 'rowclick')" :class="{'is-selected':idx==selectedIdx}" >
+                        <tr  @click="selectContact(c.objectId, 'rowclick')" :class="{'is-selected':c.objectId==selectedIdx}" >
                             <td>
                                 <span class="icon" v-if="c.PrintState=='A'" title="print all">
                                     <i class="fas fa-file-powerpoint"></i>
@@ -53,7 +53,7 @@
                                 {{c.LastPrint}}
                             </td>
                         </tr>
-                        <tr v-if="idx == selectedIdx">
+                        <tr v-if="c.objectId == selectedIdx">
                             <td class="has-background-white has-text-right" colspan="4">
                                 <div>
                                     <router-link class="button is-warning mx-2" :to="{path:'/detailList', query: {c: c.objectId, d: c.DetailId}}" target="_blank" title="print contact detail form">
@@ -211,20 +211,23 @@ export default {
             newContact.value = {name:"", code:""};
         }
 
-        const selectContact = (idx, source)=>{
-           store.dispatch('selectContact', {idx})
+        const selectContact = (objectId, source)=>{
+           store.dispatch('selectContact', {idx:objectId})
            .then(res=>{
                 //not mobile, load contact on click row
                 //is mobile, load contact on click edit button
                 let isEditbtnClick = isMobile.value && source == 'editbtnclick';
-                let contact = contacts.value[idx];
-                if (!isMobile.value || isEditbtnClick){
-                    store.dispatch("loadContact", {contactid:contact.objectId})
-                        .then(res=>{
-                            if (isEditbtnClick){
-                                router.push('/Main/Editor')
-                            }
-                        });
+                let matched = contacts.value.filter(c=>c.objectId==objectId);
+                if (matched.length>0){
+                    let contact= matched[0];
+                    if (!isMobile.value || isEditbtnClick){
+                        store.dispatch("loadContact", {contactid:contact.objectId})
+                            .then(res=>{
+                                if (isEditbtnClick){
+                                    router.push('/Main/Editor')
+                                }
+                            });
+                    }
                 }
            })
             

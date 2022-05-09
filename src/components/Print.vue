@@ -78,7 +78,7 @@ export default {
         const activeViewTab = ref(printTabs.changshen);
 
         const printContacts =  computed(()=>{ 
-            let list = store.state.contacts.filter(item=> item.IsPrint != printStatus.No);
+            let list = store.state.contacts.filter(item=> item.PrintState != printStatus.No);
             return list;
         });       
 

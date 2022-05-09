@@ -10,7 +10,7 @@ export default appConfigMixin;
 
 export const printFormat = {
   rows:4,
-  cols:6
+  cols:7
 };
 
 export const printStatus = {All: "A", No:"N", Individual:"I"}
