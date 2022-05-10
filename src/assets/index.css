@@ -69,7 +69,7 @@ nav.navbar {
 }
 
 .font1 {
-  font-size: 13px; /*20px;*/
+  font-size: 12px;
 }
 
 .font2 {
@@ -152,7 +152,7 @@ div.page
   font-size: 15px;
     position: absolute;
     top: 0;
-    left: 0.6cm;
+    left: 0.4cm;
     width: 3.4cm;
     height: 0.7cm;
     line-height: 0.3cm;
@@ -165,7 +165,7 @@ div.page
     position: absolute;
     top: 0cm;
     left: 0.4cm;
-    width: 2.2cm;
+    width: 3cm;
     height: 0.7cm;
     line-height: 0.3cm;
     font-size: 10px;
@@ -185,10 +185,10 @@ div.page
   justify-content:left;
   align-items:left;
   left: 0.1cm;
-  top: 7.2cm;
+  top: 2.8cm;
   white-space: pre-line;
-  width: 0.7cm;
-  height: 3.4cm;
+  width: 0.5cm;
+  height: 2.4cm;
   text-align: left;
 }
 
@@ -199,10 +199,10 @@ div.page
   justify-content:left;
   align-items:left;
   left: 0.1cm;
-  top: 3.1cm;
+  top: 2.1cm;
   white-space: pre-line;
   width: 0.5cm;
-  height: 2.2cm;
+  height: 3cm;
   text-align: left;
   border: 0px solid;
 }
@@ -227,11 +227,11 @@ div.page
   flex-direction: column;
   justify-content:left;
   align-items:left;
-  left: 0.2cm;
-  top: 7.4cm;
+  left: 0.1cm;
+  top: 2.8cm;
   white-space: pre-line;
-  width: 0.7cm;
-  height: 2.5cm;
+  width: 0.5cm;
+  height: 2.2cm;
   text-align: left;
 }
 
@@ -242,19 +242,19 @@ div.page
   justify-content:center;
   align-items:center;
   left: 0.9cm;
-  top: 5.4cm;
+  top: 2.8cm;
   white-space: pre-line;
-  width: 2.2cm;
-  height: 1.1cm;
+  width: 1cm;
+  height: 0.5cm;
 }
 
 .plaque-side-vertical-zx {
-  font-size: 15px;
+  font-size: 10px;
     position: absolute;
     top: 0;
     left: 0.5cm;
-    width: 2.6cm;
-    height: 0.7cm;
+    width: 2.3cm;
+    height: 0.6cm;
     line-height: 0.3cm;
     transform-origin: 0 0;
     transform: rotate(90deg);

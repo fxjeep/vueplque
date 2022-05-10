@@ -1,6 +1,6 @@
 <template>
 <section>
-      <div class="plaque-page" v-for="(page, pageidx) in allLive" :key="'p'+pageidx" >
+      <div class="plaque-page page" v-for="(page, pageidx) in allLive" :key="'p'+pageidx" >
         <table class="plaque-page-table">
             <tr>
                 <td colspan="5" align="right" class="noborder-top">
